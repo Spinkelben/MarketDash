@@ -1,41 +1,78 @@
 import { ApiClient } from "./ApiClient.js";
 
-
-async function  getMenu(e) {
-    var client = new ApiClient();
-    await client.start();
-    let response = await client.submitMessage('s', { 
-        c: { 
-            "sdk.js.9-21-0": 1, 
-            "framework.cordova": 1 }});
-    console.log(response);
-    response = await client.submitMessage('q', { p: "/PubQConfig", h: "" });
-    console.log(response);
-    response = await client.submitMessage('q', { p: "/Categories", h: "" });
-    console.log(response);
-    response = await client.submitMessage('q', { p: "/clientUnits/compassdk_danskebank/all", h: "" });
-    console.log(response);
-} 
-
 let client = new ApiClient();
+let vendors = {};
 client.addHandler(e => {
-    if (e.d.b.p === "clientUnits/compassdk_danskebank/all") {
+    const path = e.d.b.p;
+    if (path === "clientUnits/compassdk_danskebank/all") {
         let theMarket = e.d.b.d[0];
         console.log(theMarket);
-        let table = document.getElementById("food-table");
         for (const idx in theMarket.children) {
-            if (Object.hasOwnProperty.call(theMarket.children, idx)) {
-                const element = theMarket.children[idx];
-                let row = document.createElement("tr");
-                table.appendChild(row);
-                let cell = document.createElement("td");
-                row.appendChild(cell);
-                cell.innerText = element.name;
+            const vendor = theMarket.children[idx];
+            vendors[vendor.routeName] = {
+                name: vendor.name,
+                routeName: vendor.routeName,
+                imageUrl: vendor.imageUrl,
+                menuItems: [],
+            }
+
+            client.submitMessage('q', { p: `/Clients/${vendor.routeName}/activeMenu/categories`, h:"" });
+        }
+    }
+    else if (path.includes('activeMenu')) {
+        const vendorRoute = path.match(/Clients\/(\w+)\/activeMenu\/categories/)[1];
+        let vendor = vendors[vendorRoute];
+        vendor.menuItems = [];
+        const items = e.d.b.d["0"].items;
+        for (const key in items) {
+            if (Object.hasOwnProperty.call(items, key)) {
+                const menuItem = items[key];
+                vendor.menuItems.push({
+                    name: menuItem.Name,
+                    description: menuItem.Description,
+                    descriptionLong: menuItem.DescriptionLong,
+                    imageUrl: menuItem.ImageUrl,
+                });
             }
         }
     }
-})
-await client.start();
-let response = await client.submitMessage('q', { p: "/clientUnits/compassdk_danskebank/all", h: "" });
 
-console.log(response);
+    drawVendors();
+})
+
+let drawVendors = _ => {
+    let section = document.getElementById("food-table");
+    section.childNodes.forEach(element => {
+        element.remove();
+    });
+    for (const vendorRoute in vendors) {
+        if (Object.hasOwnProperty.call(vendors, vendorRoute)) {
+            const vendor = vendors[vendorRoute];
+            let img = document.createElement("img");
+            img.setAttribute("src", vendor.imageUrl);
+            img.setAttribute("class", "vendor-img");
+            let p = document.createElement("p");
+            p.appendChild(img);
+            let text = document.createTextNode(" "+ vendor.name + " ");
+            p.appendChild(text);
+            p.setAttribute("id", "header-" + vendor.routeName);
+            section.appendChild(p);
+            for (const menuItem of vendor.menuItems) {
+                let img = document.createElement("img");
+                img.setAttribute("src", menuItem.imageUrl);
+                img.setAttribute("class", "vendor-img");
+                let p = document.createElement("p");
+                p.appendChild(img);
+                let text = document.createTextNode(" "+ menuItem.name + " ");
+                p.appendChild(text);
+                p.setAttribute("id", "header-" + vendor.routeName);
+                section.appendChild(p);
+            }
+        }
+    }
+};
+
+await client.start();
+await client.submitMessage('q', { p: "/clientUnits/compassdk_danskebank/all", h: "" });
+
+drawVendors();

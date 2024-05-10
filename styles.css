@@ -1,5 +1,5 @@
 
-form > * {
+form>* {
     display: block;
     margin-top: 10px;
 }
@@ -7,4 +7,8 @@ form > * {
 body {
     max-width: 500px;
     margin: auto;
+}
+
+.vendor-img {
+    max-width: 50px;
 }
