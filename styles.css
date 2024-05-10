@@ -1,0 +1,10 @@
+
+form > * {
+    display: block;
+    margin-top: 10px;
+}
+
+body {
+    max-width: 500px;
+    margin: auto;
+}
