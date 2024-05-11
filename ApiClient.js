@@ -4,21 +4,35 @@ class ApiClient {
         this.responseMap = {};
         this.nextMessageId = 1;
         this.handlers = [];
+        this.socketUrl = 'wss://s-usc1a-nss-2040.firebaseio.com/.ws?v=5&ns=pq-dev';
+        this.messagedToBeRead = [];
     }
 
-    start() {
-        this.socket = new WebSocket('wss://s-usc1a-nss-2040.firebaseio.com/.ws?v=5&ns=pq-dev');
+    async start() {
+        this.nextMessageId = 1;
+        this.socket = new WebSocket(this.socketUrl);
         this.socket.addEventListener('message', (m) => { this.handleResponse(m); });
-        return new Promise((resolve, reject) => {
-            this.socket.addEventListener('open', resolve);
-        });
+        let firstMessage = await this.readMessage(1000);
+        
     }
 
     handleResponse(message) {
         let data = JSON.parse(message.data);
         switch (data.t) {
-            case 'c':// Don't know, log it I guess
-                console.log("C style message", message);
+
+            case 'c': // Control maybe?
+                if (data.d.t === "r") {
+                    // Redirect
+                    const newDomain = data.d.d;
+                    if (newDomain !== undefined) {
+                        this.socket.close();
+                        this.socketUrl = `wss://${newDomain}/.ws?v=5&ns=pq-dev`;
+                        this.start();
+                    }
+                }
+                else {
+                    this.messagedToBeRead.push(data);
+                }
                 break;
             case 'd': // Data maybe?
                 console.log("D syle message", message);
@@ -30,9 +44,7 @@ class ApiClient {
                     delete this.responseMap[id];
                 }
                 else {
-                    this.handlers.forEach(h => {
-                        h(data);
-                    });
+                    this.messagedToBeRead.push(data);
                 }
 
                 break;
@@ -59,8 +71,37 @@ class ApiClient {
         return result;
     }
 
-    addHandler(handlerFunction) {
-        this.handlers.push(handlerFunction);
+    hasMessages() {
+        return this.messagedToBeRead.length > 0;
+    }
+
+    peekMessage() {
+        if (this.messagedToBeRead.length > 0) {
+            return this.messagedToBeRead[0];
+        }
+
+        return null;
+    }
+    /**
+     * Wait until a message is present
+     * @param {Number} timeout ms to wait
+     * @returns the message
+     */
+    async readMessage(timeout) {
+        if (this.messagedToBeRead.length === 0) {
+            let promise = new Promise((resolve, error) => {
+                const timeOutId = setTimeout(_ => error, timeout);
+                this.socket.addEventListener('message', _ => {
+                    clearTimeout(timeOutId);
+                    resolve();
+                }, 
+                { once: true, });
+            });
+            await promise;
+        }
+
+        const message = this.messagedToBeRead.shift();
+        return message;
     }
 }
 

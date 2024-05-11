@@ -2,7 +2,7 @@ import { ApiClient } from "./ApiClient.js";
 
 let client = new ApiClient();
 let vendors = {};
-client.addHandler(e => {
+let messageHandler = e => {
     const path = e.d.b.p;
     if (path === "clientUnits/compassdk_danskebank/all") {
         let theMarket = e.d.b.d[0];
@@ -15,8 +15,6 @@ client.addHandler(e => {
                 imageUrl: vendor.imageUrl,
                 menuItems: [],
             }
-
-            client.submitMessage('q', { p: `/Clients/${vendor.routeName}/activeMenu/categories`, h:"" });
         }
     }
     else if (path.includes('activeMenu')) {
@@ -36,9 +34,7 @@ client.addHandler(e => {
             }
         }
     }
-
-    drawVendors();
-})
+};
 
 let drawVendors = _ => {
     let section = document.getElementById("food-table");
@@ -73,6 +69,24 @@ let drawVendors = _ => {
 };
 
 await client.start();
-await client.submitMessage('q', { p: "/clientUnits/compassdk_danskebank/all", h: "" });
+let fistMessage = await client.readMessage(1000);
+if (fistMessage !== null) {
+    
+}
+else {
+    console.error("Sum ting won");
+}
 
+let response = await client.submitMessage('q', { p: "/clientUnits/compassdk_danskebank/all", h: "" });
+console.log(response);
+let listVendorResponse = await client.readMessage(1000);
+messageHandler(listVendorResponse);
+for (const vendorRoute in vendors) {
+    if (Object.hasOwnProperty.call(vendors, vendorRoute)) {
+        const vendor = vendors[vendorRoute];
+        await client.submitMessage('q', { p: `/Clients/${vendor.routeName}/activeMenu/categories`, h:"" });
+        let menu = await client.readMessage(1000);
+        messageHandler(menu);
+    }
+}
 drawVendors();
