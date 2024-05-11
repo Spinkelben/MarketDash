@@ -242,10 +242,10 @@ for (const vendorId in vendors) {
     if (Object.hasOwnProperty.call(vendors, vendorId)) {
         const vendor = vendors[vendorId];
         let promises = vendor.menuItems.map(mi => getTimes(mi.id, mi.name, vendorId, 1));
-        vendorTasks.push(async () => {
-            await Promise.all(promises);
-            timeslots.forEach(t => addTimes(vendors, t));
-            });
+        vendorTasks.push(Promise.all(promises)
+            .then((timeslots) => {
+                timeslots.forEach(t => addTimes(vendors, t));
+            }));
     }
 }
 
