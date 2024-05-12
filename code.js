@@ -176,8 +176,16 @@ const setupTimeslotSelector = (dayLabels) => {
         }
     }
     displayTimes(optionPicker.value);
+    optionPicker.style.display = "";
 };
 
+const spinner = document.getElementById('load-icon');
+const foodEmoji = ['🌭', '🍔', '🍕', '🍖', '🍗', '🍚', '🍜', '🍞', '🍟', '🍠', '🍣', '🍤', '🍩', '🍪', '🍰', '🥐', '🥓', '🥖', '🦐', '🦑',
+'🍿', '🥚', '🍳', '🧇', '🥞', '🧈', '🥨', '🧀', '🥗', '🥙', '🥪', '🌮', '🌯', '🥩', '🥟', '🥠', '🥡', '🍱', '🍘', '🍙', '🍛', '🦪', '🍥',
+'🥮', '🍢', '🧆', '🥘', '🍲', '🍝', '🥣', '🥧', '🍦', '🍧', '🍨', '🎂', '🧁', '🍫', '🍮', '🍯', '🍷', '🍾', '🍼', '🍶', '🧉', '🍵', '☕',
+'🧃', '🥛', '🍸', '🍹', '🍺', '🥂', '🥃', '🥤', '🥝', '🥥', '🍇', '🍎', '🥭', '🍍', '🍌', '🍋', '🍊', '🍉', '🍈', '🍏', '🍐', '🍑', '🍒',
+'🍓', '🍅', '🍆', '🌽', '🧄', '🥔', '🥦', '🥬', '🥒','🥑', '🍄', '🌶', '🧅', '🥕', '🌰', '🥜'];
+spinner.innerText = foodEmoji[Math.floor(Math.random() * foodEmoji.length)]
 const vendors = {};
 const client = new ApiClient();
 await client.start();
@@ -213,9 +221,7 @@ for (const vendorId in vendors) {
 
 console.log(vendors);
 drawVendorsAndMenuItems();
+spinner.style.display = 'none';
 let allTimes = (await Promise.all(vendorTasks)).flat().flat();
-console.log(allTimes);
 const days = new Set(allTimes.map(t => t.label));
 setupTimeslotSelector(days);
-
-

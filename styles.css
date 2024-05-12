@@ -20,6 +20,8 @@ body {
     font-size: large;
     font-weight: 500;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
+    border-width: 1px;
+    border-style: solid;
 }
 
 h1,h2,h3 {
@@ -34,6 +36,7 @@ h2,h3 {
 
 .timeslot.disabled {
     color: #f75340;
+    text-decoration: line-through;
 }
 
 .timeslot.enabled {
@@ -43,10 +46,25 @@ h2,h3 {
 .food-table {
     margin-left: auto;
     margin-right: auto;
+    justify-content: center;
+    display: contents;
 }
 
 select {
     margin-bottom: 2em;
     font-size: large;
     font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+.spinner {
+    transform-origin: center;
+    animation: spin 1s linear infinite;
+    display: flex;
+    font-size: 400px;
+    justify-content: center;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-360deg); }
 }
