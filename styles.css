@@ -60,8 +60,11 @@ select {
     transform-origin: center;
     animation: spin 1s linear infinite;
     display: flex;
-    font-size: 400px;
     justify-content: center;
+}
+
+.big {
+    font-size: 400px;
 }
 
 @keyframes spin {
