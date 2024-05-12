@@ -1,24 +1,52 @@
 body {
-    max-width: 500px;
+    max-width: 1200px;
     margin: auto;
+    padding-left: 2em;
+    padding-right: 2em;;
 }
 
 .vendor-img {
     max-width: 50px;
+    max-height: 50px;
 }
 
 .menu-img {
     max-width: 50px;
+    max-height: 50px;
 }
 
 .timeslot {
     margin: 0 10px;
+    font-size: large;
+    font-weight: 500;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+h1,h2,h3 {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+h2,h3 {
+    display: inline;
+    font-weight: normal;
+
 }
 
 .timeslot.disabled {
-    color: red;
+    color: #f75340;
 }
 
 .timeslot.enabled {
-    color:yellowgreen;
+    color:#197d07;
+}
+
+.food-table {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+select {
+    margin-bottom: 2em;
+    font-size: large;
+    font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
 }
