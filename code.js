@@ -56,12 +56,12 @@ const drawVendors = _ => {
             for (const menuItem of vendor.menuItems) {
                 let img = document.createElement("img");
                 img.setAttribute("src", menuItem.imageUrl);
-                img.setAttribute("class", "vendor-img");
+                img.setAttribute("class", "menu-img");
                 let p = document.createElement("p");
                 p.appendChild(img);
                 let text = document.createTextNode(" "+ menuItem.name + " ");
                 p.appendChild(text);
-                p.setAttribute("id", "header-" + vendor.routeName);
+                p.setAttribute("id", `menuItem-${vendor.routeName}-${menuItem.id}`);
                 section.appendChild(p);
             }
         }
@@ -89,6 +89,9 @@ const getTimes = async (id, name, vendor, quantity) => {
         "https://payments2-jaonrqeeaq-ew.a.run.app/v1/orders/timeslots", 
         { 
             method: "POST",
+            headers: new Headers({
+                "Content-Type": "application/json"
+            }),
             body: JSON.stringify({
                 "routeName": vendor,
                 "products": [
