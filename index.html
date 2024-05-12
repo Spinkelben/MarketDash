@@ -7,10 +7,32 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     </head>
     <body>
-        <h1>Food Dashboard</h1>
-        <section id="food-table">
-            
-        </section>
+        <main>
+            <haeder>
+                <h1>Food Dashboard</h1>
+                <select id="day-selector"></select>
+            </haeder>
+            <div id="food-table">
+            </div>
+        </main>
+        <template id="vendor-template">
+            <section class="vendor">
+                <img class="vendor-img" >
+                <span class="vendor-name" ></span>
+                <dl class="menu-item-list">
+
+                </dl>
+            </section>
+        </template>
+        <template id="menu-item-template">
+            <dt>
+                <img class="menu-img">
+                <span class="item-name"></span>
+            </dt>
+            <dd class="timespans" >
+                <span>No times available...</span>
+            </dd>
+        </template>
         <script type="module" src="code.js"></script>
     </body>
 </html>
