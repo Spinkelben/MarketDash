@@ -23,6 +23,11 @@ const messageHandler = e => {
         for (const key in items) {
             if (Object.hasOwnProperty.call(items, key)) {
                 const menuItem = items[key];
+                if (menuItem.enabled === false)
+                {
+                    continue;
+                }
+                
                 vendor.menuItems.push({
                     name: menuItem.Name,
                     description: menuItem.Description,
@@ -56,7 +61,7 @@ const createMenuItemElement = (vendor, menuItem) => {
     const timespans = templateInstance.querySelector(".timespans");
     timespans.setAttribute("id", `timespans-${vendor.routeName}-${menuItem.id}`);
     const spinner = templateInstance.querySelector(".spinner");
-    spinner.textContent = getRandomFood();
+    spinner.textContent = getRandomFoodIcon();
     return templateInstance;
 };
 
@@ -81,7 +86,7 @@ const drawVendorsAndMenuItems = () => {
     }
 };
 
-const getRandomFood = () => {
+const getRandomFoodIcon = () => {
     const foodEmoji = ['🌭', '🍔', '🍕', '🍖', '🍗', '🍚', '🍜', '🍞', '🍟', '🍠', '🍣', '🍤', '🍩', '🍪', '🍰', '🥐', '🥓', '🥖', '🦐', '🦑',
 '🍿', '🥚', '🍳', '🧇', '🥞', '🧈', '🥨', '🧀', '🥗', '🥙', '🥪', '🌮', '🌯', '🥩', '🥟', '🥠', '🥡', '🍱', '🍘', '🍙', '🍛', '🦪', '🍥',
 '🥮', '🍢', '🧆', '🥘', '🍲', '🍝', '🥣', '🥧', '🍦', '🍧', '🍨', '🎂', '🧁', '🍫', '🍮', '🍯', '🍷', '🍾', '🍼', '🍶', '🧉', '🍵', '☕',
@@ -191,7 +196,7 @@ const setupTimeslotSelector = (dayLabels) => {
 };
 
 const spinner = document.getElementById('load-icon');
-spinner.innerText = getRandomFood();
+spinner.innerText = getRandomFoodIcon();
 const vendors = {};
 const client = new ApiClient();
 await client.start();
