@@ -54,14 +54,21 @@ const createVendorElement = (vendor) => {
 
 const createMenuItemElement = (vendor, menuItem) => {
     const templateInstance = document.querySelector("#menu-item-template").content.cloneNode(true);
-    const img = templateInstance.querySelector(".menu-img");
-    img.src = menuItem.imageUrl;
+    const imgs = templateInstance.querySelectorAll("img");
+    imgs.forEach((i) => i.src = menuItem.imageUrl);
     const text = templateInstance.querySelector(".item-name");
     text.textContent = menuItem.name;
     const timespans = templateInstance.querySelector(".timespans");
     timespans.setAttribute("id", `timespans-${vendor.routeName}-${menuItem.id}`);
     const spinner = templateInstance.querySelector(".spinner");
     spinner.textContent = getRandomFoodIcon();
+    const description = templateInstance.querySelector(".menu-item-description");
+    description.textContent = menuItem.descriptionLong;
+    const detailsDialog = templateInstance.querySelector("dialog");
+    const shortDescription = templateInstance.querySelector("dt");
+    shortDescription.addEventListener("click", () => {  detailsDialog.showModal(); });
+    const closeButton = templateInstance.querySelector("dialog button");
+    closeButton.addEventListener("click", (e) => { e.stopPropagation(); detailsDialog.close(); });
     return templateInstance;
 };
 
