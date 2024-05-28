@@ -27,7 +27,7 @@ const messageHandler = e => {
                 {
                     continue;
                 }
-                
+
                 vendor.menuItems.push({
                     name: menuItem.Name,
                     description: menuItem.Description,
@@ -156,7 +156,7 @@ const displayTimes = (dayLabel) => {
             hour: "numeric",
             minute: "numeric",
         });
-    for (const timeslot of selectedTime.sort((a, b) => a.date < b.date )) {
+    for (const timeslot of selectedTime.sort((a, b) => a.date - b.date )) {
         const timeslotContainer = document.querySelector(`#timespans-${timeslot.vendor}-${timeslot.id}`);
         if (timeslotContainer !== undefined) {
             const timeslotElement = document.createElement("span");
