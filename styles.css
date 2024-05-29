@@ -8,16 +8,22 @@ body {
 .vendor-img {
     max-width: 50px;
     max-height: 50px;
+    object-fit: contain;
 }
 
 .menu-img-small {
-    max-width: 50px;
+    width: 50px;
     max-height: 50px;
+    object-fit: contain;
 }
 
 .menu-img-big {
-    max-width: 100%;
-    max-height: 100%;
+    max-width: 75vw;
+    min-width: 50vw;
+    max-height: 30vh;
+    object-fit: cover;
+    margin: 0 auto;
+    display: block;
 }
 
 .timeslot {
@@ -79,4 +85,21 @@ select {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(-360deg); }
+}
+
+dialog {
+    margin: 10vh 10vw;
+    max-width: 80vw;
+    max-height: 80vh;
+}
+
+.menu-item-description {
+    white-space: pre-wrap;
+    display: block;
+    max-width: 50vw;
+}
+
+dialog button {
+    margin-top: 1em;
+    display: block;
 }
