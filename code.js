@@ -65,6 +65,16 @@ const createMenuItemElement = (vendor, menuItem) => {
     const description = templateInstance.querySelector(".menu-item-description");
     description.textContent = menuItem.descriptionLong;
     const detailsDialog = templateInstance.querySelector("dialog");
+    detailsDialog.addEventListener("click", (e) => {
+        const dialogRect = e.target.getBoundingClientRect();
+        const x = e.clientX;
+        const y = e.clientY;
+        const isInDialog = x >= dialogRect.left && x <= dialogRect.right && y >= dialogRect.top && y <= dialogRect.bottom;
+        if (isInDialog === false) {
+            e.target.close();
+            e.stopPropagation();
+        }
+    });
     const shortDescription = templateInstance.querySelector("dt");
     shortDescription.addEventListener("click", () => {  detailsDialog.showModal(); });
     const closeButton = templateInstance.querySelector("dialog button");
