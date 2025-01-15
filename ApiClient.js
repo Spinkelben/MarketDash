@@ -12,8 +12,6 @@ class ApiClient {
         this.nextMessageId = 1;
         this.socket = new WebSocket(this.socketUrl);
         this.socket.addEventListener('message', (m) => { this.handleResponse(m); });
-        let firstMessage = await this.readMessage(1000);
-        
     }
 
     handleResponse(message) {
