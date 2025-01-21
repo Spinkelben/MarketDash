@@ -15,7 +15,29 @@ class ApiClient {
     }
 
     handleResponse(message) {
-        let data = JSON.parse(message.data);
+        if (Number.isInteger(message.data)) {
+            this.numberOfChunks = Number.parseInt(message.data);
+            return;
+        }
+
+        if (this.numberOfChunks > 0) {
+            this.numberOfChunks--;
+            this.chunkBuffer.push(message.data);
+            if (this.numberOfChunks !== 0) {
+                return;
+            }
+        }
+
+        let data;
+        if (this.chunkBuffer !== undefined) {
+            combined = this.chunkBuffer.join('');
+            delete this.chunkBuffer;
+            data = JSON.parse(combined);
+        }
+        else {
+            data = JSON.parse(message.data);
+        }
+
         switch (data.t) {
 
             case 'c': // Control maybe?
