@@ -13,10 +13,10 @@
     </head>
     <body>
         <main>
-            <haeder>
+            <header>
                 <h1>Food Dashboard</h1>
                 <select id="day-selector" style="display: none;"></select>
-            </haeder>
+            </header>
             <div id="food-table">
                 <div id="load-icon" class="spinner big">🌭</div>
             </div>
@@ -26,21 +26,24 @@
         </main>
         <template id="vendor-template">
             <section class="vendor">
-                <img class="vendor-img" >
-                <h2 class="vendor-name" ></h2>
+                <span class="vendor-header" >
+                    <img class="vendor-img" >
+                    <h2 class="vendor-name" ></h2>
+                </span>
                 <dl class="menu-item-list">
 
                 </dl>
             </section>
         </template>
         <template id="menu-item-template">
-            <dt>
+            <dt class="menu-item-header">
                 <img class="menu-img-small">
                 <h3 class="item-name"></h3>
                 <dialog class="menu-item-details">
+                    <h1 class="item-name"></h1>
                     <img class="menu-img-big"> 
                     <br>
-                    <span class="menu-item-description" ></span>
+                    <p class="menu-item-description" ></p>
                     <button autofocus>Close</button> 
                 </dialog>
             </dt>

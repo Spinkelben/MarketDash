@@ -56,8 +56,8 @@ const createMenuItemElement = (vendor, menuItem) => {
     const templateInstance = document.querySelector("#menu-item-template").content.cloneNode(true);
     const imgs = templateInstance.querySelectorAll("img");
     imgs.forEach((i) => i.src = menuItem.imageUrl);
-    const text = templateInstance.querySelector(".item-name");
-    text.textContent = menuItem.name;
+    const text = templateInstance.querySelectorAll(".item-name");
+    text.forEach((i) => i.textContent = menuItem.name);
     const timespans = templateInstance.querySelector(".timespans");
     timespans.setAttribute("id", `timespans-${vendor.routeName}-${menuItem.id}`);
     const spinner = templateInstance.querySelector(".spinner");

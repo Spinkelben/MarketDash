@@ -1,20 +1,41 @@
+:root { 
+    --primary-color: #1670d6; 
+    --secondary-color: #1a1b1d; 
+    --bg-color: #f9f9f9; 
+    --font-color: #333; 
+    --border-color: #ddd; 
+    --disabled-color: #f75340;
+    --enabled-color: #197d07;
+    --accent-color: #dee5f2;
+}
+
 body {
     max-width: 1200px;
     margin: auto;
     padding-left: 2em;
-    padding-right: 2em;;
+    padding-right: 2em;
+    animation: fadeIn 1s ease-in-out;
+    background-color: var(--bg-color);
 }
 
 .vendor-img {
     max-width: 50px;
     max-height: 50px;
     object-fit: contain;
+    vertical-align: middle;
+    animation: fadeIn 1s ease-in-out;
+    border-radius: 10px;
 }
+
 
 .menu-img-small {
     width: 50px;
     max-height: 50px;
     object-fit: contain;
+    vertical-align: middle;
+    margin-right: 0.5em; /* Add some space to prevent overlap */
+    animation: fadeIn 1s ease-in-out;
+    border-radius: 10px;
 }
 
 .menu-img-big {
@@ -24,23 +45,39 @@ body {
     object-fit: contain;
     margin: 0 auto;
     display: block;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.timespans {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: left;
+    gap: 0.5em;
+    /* margin-top: 1em; */
 }
 
 .timeslot {
-    margin: 0 10px;
+    /* margin: 0 10px; */
     font-size: large;
     font-weight: 500;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
     border-width: 1px;
     border-style: solid;
+    padding: .25em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 1s ease-in-out;
+    border-radius: 10px;
 }
 
-span {
+span, footer, p {
     font-family: Verdana, Geneva, Tahoma, sans-serif;
+    color: var(--font-color);
 }
 
 h1,h2,h3 {
     font-family: Arial, Helvetica, sans-serif;
+    color: var(--font-color);
 }
 
 h2,h3 {
@@ -58,17 +95,19 @@ h2,h3 {
     color:#197d07;
 }
 
-.food-table {
+#food-table {
     margin-left: auto;
     margin-right: auto;
-    justify-content: center;
-    display: contents;
+    display: flex;
+    flex-direction: column;
+    /* margin-bottom: 1em; */
+    gap: 1em;
 }
 
 select {
-    margin-bottom: 2em;
     font-size: large;
     font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    animation: fadeIn 1s ease-in-out;
 }
 
 .spinner {
@@ -82,23 +121,99 @@ select {
     font-size: 400px;
 }
 
+.vendor {
+    animation: fadeIn 1s ease-in-out;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: var(--accent-color);
+    padding-left: 1em;
+    padding-right: 1em;
+    padding-top: 1em;
+    padding: 1em;
+    display: flex;
+    flex-direction: column;
+    gap: .5em;
+}
+
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(-360deg); }
 }
 
-dialog {
-    max-width: 80vw;
-    max-height: 80vh;
+.menu-item-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
 }
 
 .menu-item-description {
     white-space: pre-wrap;
     display: block;
     max-width: 50vw;
+    margin-top: 0.5em;
+}
+
+.menu-item-details {
+    background-color: var(--accent-color);
+    border-radius: 10px;
 }
 
 dialog button {
-    margin-top: 1em;
     display: block;
+}
+
+button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    border-radius: 10px;
+}
+
+button:hover {
+    background-color: var(--secondary-color);
+}
+
+@keyframes fadeIn { 
+    from { opacity: 0; } 
+    to { opacity: 1; } 
+} 
+
+footer { 
+    text-align: center;
+    padding: 1em 0;
+    font-size: small;
+    color: var(--font-color);
+    border-top: 1px solid var(--border-color);
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1em; /* Space between items */
+}
+
+.vendor-header {
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    gap: .25em;
+}
+
+.vendor-header h2 {
+    margin: 0;
+}
+
+.menu-item-header {
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    gap: .25em;
+}
+
+.menu-item-header h3 {
+    margin: 0;
 }
