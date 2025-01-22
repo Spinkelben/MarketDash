@@ -125,13 +125,11 @@ select {
     animation: fadeIn 1s ease-in-out;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     background: var(--accent-color);
-    padding-left: 1em;
-    padding-right: 1em;
-    padding-top: 1em;
     padding: 1em;
     display: flex;
     flex-direction: column;
     gap: .5em;
+    border-radius: 10px;
 }
 
 @keyframes spin {
