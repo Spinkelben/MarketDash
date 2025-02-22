@@ -110,13 +110,14 @@ class ApiClient {
     async readMessage(timeout) {
         if (this.messagedToBeRead.length === 0) {
             let promise = new Promise((resolve, error) => {
-                const timeOutId = setTimeout(_ => error, timeout);
+                const timeOutId = setTimeout(_ => error("Timed out"), timeout);
                 this.socket.addEventListener('message', _ => {
                     clearTimeout(timeOutId);
                     resolve();
                 }, 
                 { once: true, });
             });
+
             await promise;
         }
 
