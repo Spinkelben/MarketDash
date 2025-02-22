@@ -14,6 +14,10 @@ const messageHandler = e => {
             if (location.children !== undefined) {
                 for (const idx in location.children) {
                     const vendor = location.children[idx];
+                    if (!validateVendor(vendor)) {
+                        console.error('Invalid vendor data:', vendor);
+                        return;
+                    }
                     vendors[vendor.routeName] = {
                         name: vendor.name,
                         routeName: vendor.routeName,
@@ -25,6 +29,16 @@ const messageHandler = e => {
             }
             else {
                 const vendor = location;
+                // Skip the cafes for now
+                if (vendor.routeName === "compassdk_townhallcafe"
+                    || vendor.routeName === "compassdk_centralcafe"
+                ) {
+                    continue;
+                }
+                if (!validateVendor(vendor)) {
+                    console.error('Invalid vendor data:', vendor);
+                    return;
+                }
                 vendors[vendor.routeName] = {
                     name: vendor.name,
                     routeName: vendor.routeName,
@@ -43,7 +57,7 @@ const messageHandler = e => {
         for (const key in items) {
             if (Object.hasOwnProperty.call(items, key)) {
                 const menuItem = items[key];
-                if (menuItem.enabled === false)
+                if (menuItem.enabled === false || !validateMenuItem(menuItem))
                 {
                     continue;
                 }
@@ -67,7 +81,7 @@ const createVendorElement = (vendor) => {
     const vendorElement = templateInstance.querySelector(".vendor");
     vendorElement.setAttribute("id", `vendor-${vendor.routeName}`);
     const img = templateInstance.querySelector(".vendor-img");
-    img.setAttribute("src", vendor.imageUrl);
+    img.setAttribute("src", sanitizeImageUrl(vendor.imageUrl));
     const text = templateInstance.querySelector(".vendor-name");
     text.textContent = vendor.name;
     // Hide the vendor if it is not visible
@@ -84,7 +98,7 @@ const createMenuItemElement = (vendor, menuItem) => {
     const text = templateInstance.querySelectorAll(".item-name");
     text.forEach((i) => i.textContent = `${menuItem.name} - ${menuItem.price} kr.`);
     const timespans = templateInstance.querySelector(".timespans");
-    timespans.setAttribute("id", `timespans-${vendor.routeName}-${menuItem.id}`);
+    timespans.setAttribute("id", `timespans-${sanitizeId(vendor.routeName)}-${sanitizeId(menuItem.id)}`);
     const spinner = templateInstance.querySelector(".spinner");
     spinner.textContent = getRandomFoodIcon();
     const description = templateInstance.querySelector(".menu-item-description");
@@ -278,3 +292,35 @@ spinner.style.display = 'none';
 let allTimes = (await Promise.all(vendorTasks)).flat().flat();
 const days = new Set(allTimes.map(t => t.label));
 setupTimeslotSelector(days);
+
+function sanitizeImageUrl(url) {
+    try {
+        const parsed = new URL(url);
+        // Only allow specific domains and protocols
+        if (!parsed.protocol.match(/^https?:$/)) {
+            return '';
+        }
+
+        return url;
+    } catch {
+        return '';
+    }
+}
+
+function sanitizeId(id) {
+    return id.toString().replace(/[^a-zA-Z0-9-_]/g, '');
+}
+
+function validateVendor(vendor) {
+    const required = ['name', 'routeName', 'imageUrl'];
+    return required.every(prop => typeof vendor[prop] === 'string') &&
+           typeof vendor.visible === 'boolean';
+}
+
+function validateMenuItem(item) {
+    return typeof item.Name === 'string' &&
+           typeof item.Description === 'string' &&
+           typeof item.ImageUrl === 'string' &&
+           typeof item.Cost === 'number' &&
+           /^\d+$/.test(item.Cost);
+}
