@@ -11,13 +11,19 @@ class ApiClient {
     async start() {
         this.nextMessageId = 1;
         this.socket = new WebSocket(this.socketUrl);
-        this.socket.addEventListener('message', (m) => { this.handleResponse(m); });
+        this.socket.addEventListener('message', (message) =>  this.handleResponse(message));
+        this.socket.addEventListener('close', () => this.handleClose());
+    }
+
+    handleClose() {
+        console.log("Socket closed");
     }
 
     handleResponse(message) {
-        if (Number.isInteger(message.data)) {
-            this.numberOfChunks = Number.parseInt(message.data);
-            return;
+        if (Number.isInteger(Number(message.data))) {
+            this.numberOfChunks = Number(message.data);
+            this.chunkBuffer = [];
+            console.log("Received chunks:", this.numberOfChunks, "Original value:", message.data); return;
         }
 
         if (this.numberOfChunks > 0) {
@@ -30,7 +36,7 @@ class ApiClient {
 
         let data;
         if (this.chunkBuffer !== undefined) {
-            combined = this.chunkBuffer.join('');
+            let combined = this.chunkBuffer.join('');
             delete this.chunkBuffer;
             data = JSON.parse(combined);
         }
@@ -73,7 +79,7 @@ class ApiClient {
         }
     }
 
-    submitMessage(type, body) {
+    submitMessage(type, body, timeout=5000) {
         let result = new Promise((resolve, reject) => {
             const id = this.nextMessageId++;
             this.responseMap[id] = resolve;
@@ -85,7 +91,9 @@ class ApiClient {
                     b: body,
                 }
             }
+            const timeOutId = setTimeout(_ => reject("Timed out"), timeout);
             this.socket.send(JSON.stringify(wrapper));
+            clearTimeout(timeOutId);
         });
 
         return result;

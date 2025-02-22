@@ -1,17 +1,34 @@
 import { ApiClient } from "./ApiClient.js";
 
 const messageHandler = e => {
-    const path = e.d.b.p;
+    const path = e?.d?.b?.p;
+    if (path === undefined) {
+        return;
+    }
     if (path === "clientUnits/compassdk_danskebank/all") {
-        let theMarket = e.d.b.d[0];
-        console.log(theMarket);
-        for (const idx in theMarket.children) {
-            const vendor = theMarket.children[idx];
-            vendors[vendor.routeName] = {
-                name: vendor.name,
-                routeName: vendor.routeName,
-                imageUrl: vendor.imageUrl,
-                menuItems: [],
+        // let theMarket = e.d.b.d[0];
+        for (const index in e.d.b.d) {
+            let location = e.d.b.d[index];
+            console.log(location);
+            if (location.children !== undefined) {
+                for (const idx in location.children) {
+                    const vendor = location.children[idx];
+                    vendors[vendor.routeName] = {
+                        name: vendor.name,
+                        routeName: vendor.routeName,
+                        imageUrl: vendor.imageUrl,
+                        menuItems: [],
+                    }
+                }
+            }
+            else {
+                const vendor = location;
+                vendors[vendor.routeName] = {
+                    name: vendor.name,
+                    routeName: vendor.routeName,
+                    imageUrl: vendor.imageUrl,
+                    menuItems: [],
+                }
             }
         }
     }
