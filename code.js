@@ -57,8 +57,14 @@ const messageHandler = e => {
         for (const key in items) {
             if (Object.hasOwnProperty.call(items, key)) {
                 const menuItem = items[key];
-                if (menuItem.enabled === false || !validateMenuItem(menuItem))
+                if (menuItem.enabled === false) 
                 {
+                    continue;
+                }
+                    
+                if (!validateMenuItem(menuItem))
+                {
+                    console.error('Invalid menu item data:', menuItem);
                     continue;
                 }
 
@@ -96,7 +102,7 @@ const createMenuItemElement = (vendor, menuItem) => {
     const imgs = templateInstance.querySelectorAll("img");
     imgs.forEach((i) => i.src = menuItem.imageUrl);
     const text = templateInstance.querySelectorAll(".item-name");
-    text.forEach((i) => i.textContent = `${menuItem.name} - ${menuItem.price} kr.`);
+    text.forEach((i) => i.textContent = `${menuItem.name}`);
     const timespans = templateInstance.querySelector(".timespans");
     timespans.setAttribute("id", `timespans-${sanitizeId(vendor.routeName)}-${sanitizeId(menuItem.id)}`);
     const spinner = templateInstance.querySelector(".spinner");
