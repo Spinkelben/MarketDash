@@ -125,7 +125,10 @@ const createMenuItemElement = (vendor, menuItem) => {
 
 const drawVendorsAndMenuItems = (vendors) => {
     let section = document.getElementById("food-table");
-    section.innerHTML = "";
+    // Remove everything from the section except the spinner
+    while (section.children.length > 1) {
+        section.removeChild(section.lastChild);
+    }
 
     for (const vendorRoute of Object.keys(vendors)) {
         const vendor = vendors[vendorRoute];
@@ -292,10 +295,51 @@ function validateVendor(vendor) {
 function validateMenuItem(item) {
     return typeof item.Name === 'string' &&
            typeof item.Description === 'string' &&
-           typeof item.ImageUrl === 'string' &&
            typeof item.Cost === 'number' &&
            /^\d+$/.test(item.Cost);
 }
+
+
+async function loadAllSites() {
+    const sites = [];
+    const client = new ApiClient();
+    await client.start();
+    await client.readMessage(5000);
+    await client.submitMessage('q', { p: '/clientUnits', h: "" });
+    const message = await client.readMessage(5000);
+    if (message === null) {
+        console.error("No message received");
+        return;
+    }
+
+    if (message.d.b.d === undefined) {
+        console.error("No sites found");
+        return;
+    }
+
+    // Create site selector 
+    const siteSelector = document.createElement("select");
+    siteSelector.setAttribute("id", "site-selector");
+    for (const site of Object.keys(message.d.b.d)) {
+        const option = document.createElement("option");
+        option.value = site;
+        option.textContent = site;
+        siteSelector.appendChild(option);
+    }
+    document.body.appendChild(siteSelector);
+
+    // Create button to load site
+    const loadButton = document.createElement("button");
+    loadButton.textContent = "Load site";
+    loadButton.addEventListener("click", async () => {
+        const selectedSite = document.getElementById("site-selector").value;
+        main({ clientUnitsPath: `/clientUnits/${selectedSite}/all` });
+    });
+
+    document.body.appendChild(loadButton);
+
+}
+
 
 
 /**
@@ -318,6 +362,7 @@ async function main(config = {}) {
     const vendors = {};
     const spinner = document.getElementById('load-icon');
     spinner.innerText = getRandomFoodIcon();
+    spinner.style.display = 'block';
     
     try {
         const client = new ApiClient();
@@ -350,14 +395,28 @@ async function main(config = {}) {
             }
         }
 
+        spinner.style.display = 'none';
         drawVendorsAndMenuItems(vendors);
         
         const allTimes = await fetchAllTimeslots(vendors);
         const days = new Set(allTimes.map(t => t.label));
         setupTimeslotSelector(allTimes, days);
 
-        return { success: true, vendors, allTimes };
+        // Add hidden button to enable god mode
+        if (document.getElementById("god-mode-button") === null) {
+            const godModeButton = document.createElement("button");
+            godModeButton.textContent = "Enable God Mode";
+            godModeButton.setAttribute("id", "god-mode-button");
+            godModeButton.style.display = "None";
+            godModeButton.addEventListener("click", () => {
+                return loadAllSites();
+            });
 
+            document.body.appendChild(godModeButton);
+        }
+
+
+        return { success: true, vendors, allTimes };
     } catch (error) {
         console.error("Error in main:", error);
         return { success: false, error };
@@ -367,6 +426,4 @@ async function main(config = {}) {
 }
 
 
-// Start the application with default config
-main({ 
-}).catch(console.error);
+export { main };

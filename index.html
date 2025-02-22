@@ -52,6 +52,9 @@
                 <span class="spinner" >No times available...</span>
             </dd>
         </template>
-        <script type="module" src="code.js" async></script>
+        <script type="module" async>
+            import { main } from './code.js';
+            main().catch(console.error);
+        </script>
     </body>
 </html>
