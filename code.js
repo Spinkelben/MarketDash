@@ -299,6 +299,24 @@ function validateMenuItem(item) {
            /^\d+$/.test(item.Cost);
 }
 
+function getDayOfYear(date) {
+    const start = new Date(date.getFullYear(), 0, 0);
+    const diff = date - start;
+    const oneDay = 1000 * 60 * 60 * 24;
+    return Math.floor(diff / oneDay);
+}
+
+function shuffleVendorList(vendors, dayOfYear) {
+    const keys = Object.keys(vendors);
+    let offset = dayOfYear % keys.length;
+    let shuffled = keys.slice(offset).concat(keys.slice(0, offset));
+    let shuffledVendors = {};
+    for (const key of shuffled) {
+        shuffledVendors[key] = vendors[key];
+    }
+
+    return shuffledVendors;
+}
 
 async function loadAllSites() {
     const sites = [];
@@ -341,7 +359,6 @@ async function loadAllSites() {
 }
 
 
-
 /**
  * @typedef {Object} MainConfig
  * @property {number} [messageTimeout=5000] - Timeout for reading messages in milliseconds
@@ -359,7 +376,7 @@ async function main(config = {}) {
         clientUnitsPath = '/clientUnits/compassdk_danskebank/all'
     } = config;
 
-    const vendors = {};
+    let vendors = {};
     const spinner = document.getElementById('load-icon');
     spinner.innerText = getRandomFoodIcon();
     spinner.style.display = 'block';
@@ -380,6 +397,10 @@ async function main(config = {}) {
         for (const excludedVendor of excludedVendors) {
             delete vendors[excludedVendor];
         }
+
+        // Shuffle the vendor list based on the day of the year
+        const dayOfYear = getDayOfYear(new Date());
+        vendors = shuffleVendorList(vendors, dayOfYear);
 
         // Fetch menus for all non-excluded vendors
         for (const vendorRoute in vendors) {
