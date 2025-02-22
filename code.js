@@ -1,23 +1,24 @@
 import { ApiClient } from "./ApiClient.js";
 
-const messageHandler = e => {
+const messageHandler = (vendors, e) => {
     const path = e?.d?.b?.p;
     if (path === undefined) {
         console.error("No path in message", e);
         return;
     }
 
-    if (path === "clientUnits/compassdk_danskebank/all") {
+    if (path.match(/^clientUnits\/.*\/all$/)) {
         for (const index in e.d.b.d) {
             let location = e.d.b.d[index];
-            console.log(location);
+            // console.log(location);
             if (location.children !== undefined) {
                 for (const idx in location.children) {
                     const vendor = location.children[idx];
                     if (!validateVendor(vendor)) {
                         console.error('Invalid vendor data:', vendor);
-                        return;
+                        continue;
                     }
+
                     vendors[vendor.routeName] = {
                         name: vendor.name,
                         routeName: vendor.routeName,
@@ -29,16 +30,11 @@ const messageHandler = e => {
             }
             else {
                 const vendor = location;
-                // Skip the cafes for now
-                if (vendor.routeName === "compassdk_townhallcafe"
-                    || vendor.routeName === "compassdk_centralcafe"
-                ) {
-                    continue;
-                }
                 if (!validateVendor(vendor)) {
                     console.error('Invalid vendor data:', vendor);
-                    return;
+                    continue;
                 }
+
                 vendors[vendor.routeName] = {
                     name: vendor.name,
                     routeName: vendor.routeName,
@@ -50,7 +46,7 @@ const messageHandler = e => {
         }
     }
     else if (path.includes('activeMenu')) {
-        const vendorRoute = path.match(/Clients\/(\w+)\/activeMenu\/categories/)[1];
+        const vendorRoute = path.match(/Clients\/(.+)\/activeMenu\/categories/)[1];
         let vendor = vendors[vendorRoute];
         vendor.menuItems = [];
         const items = e.d.b.d["0"].items;
@@ -127,24 +123,23 @@ const createMenuItemElement = (vendor, menuItem) => {
     return templateInstance;
 };
 
-const drawVendorsAndMenuItems = () => {
+const drawVendorsAndMenuItems = (vendors) => {
     let section = document.getElementById("food-table");
-    section.childNodes.forEach(element => {
-        element.remove();
-    });
+    section.innerHTML = "";
 
-    for (const vendorRoute in vendors) {
-        if (Object.hasOwnProperty.call(vendors, vendorRoute)) {
-            const vendor = vendors[vendorRoute];
-            const vendorElement = createVendorElement(vendor);
-            const menuItemList = vendorElement.querySelector(".menu-item-list");
-            
-            for (const menuItem of vendor.menuItems) {
-                const menuItemElement = createMenuItemElement(vendor, menuItem);
-                menuItemList.appendChild(menuItemElement);
-            }
-            section.appendChild(vendorElement);
+    for (const vendorRoute of Object.keys(vendors)) {
+        const vendor = vendors[vendorRoute];
+        const vendorElement = createVendorElement(vendor);
+        const menuItemList = vendorElement.querySelector(".menu-item-list");
+        
+        const fragment = document.createDocumentFragment();
+        for (const menuItem of vendor.menuItems) {
+            const menuItemElement = createMenuItemElement(vendor, menuItem);
+            fragment.appendChild(menuItemElement);
         }
+
+        menuItemList.appendChild(fragment);
+        section.appendChild(vendorElement);
     }
 };
 
@@ -203,7 +198,7 @@ const getTimes = async (id, name, vendor, quantity) => {
     return flattened;
 };
 
-const displayTimes = (dayLabel) => {
+const displayTimes = (allTimes, dayLabel) => {
     const selectedTime = allTimes.filter(t => t.label == dayLabel);
     
     // Clear all previous times
@@ -239,10 +234,10 @@ const displayTimes = (dayLabel) => {
     }
 };
 
-const setupTimeslotSelector = (dayLabels) => {
+const setupTimeslotSelector = (allTimes, dayLabels) => {
     const optionPicker = document.querySelector("#day-selector");
     optionPicker.addEventListener('change', (e) => {
-        displayTimes(e.target.value);
+        displayTimes(allTimes, e.target.value);
     });
 
     if (optionPicker.childNodes.length === 0) {
@@ -253,51 +248,23 @@ const setupTimeslotSelector = (dayLabels) => {
             optionPicker.appendChild(el);
         }
     }
-    displayTimes(optionPicker.value);
+    displayTimes(allTimes, optionPicker.value);
     optionPicker.style.display = "";
 };
 
-const spinner = document.getElementById('load-icon');
-spinner.innerText = getRandomFoodIcon();
-const vendors = {};
-const client = new ApiClient();
-await client.start();
-let fistMessage = await client.readMessage(1000);
-if (fistMessage !== null) {
-    
-}
-else {
-    console.error("Client Api connection not initialized correctly");
-}
 
-let response = await client.submitMessage('q', { p: "/clientUnits/compassdk_danskebank/all", h: "" });
-console.log(response);
-let listVendorResponse = await client.readMessage(1000);
-messageHandler(listVendorResponse);
-for (const vendorRoute in vendors) {
-    if (Object.hasOwnProperty.call(vendors, vendorRoute)) {
-        const vendor = vendors[vendorRoute];
-        await client.submitMessage('q', { p: `/Clients/${vendor.routeName}/activeMenu/categories`, h:"" });
-        let menu = await client.readMessage(1000);
-        messageHandler(menu);
+// Helper function to fetch all timeslots
+async function fetchAllTimeslots(vendors) {
+    const vendorTasks = [];
+    for (const vendorId in vendors) {
+        if (Object.hasOwnProperty.call(vendors, vendorId)) {
+            const vendor = vendors[vendorId];
+            const promises = vendor.menuItems.map(mi => getTimes(mi.id, mi.name, vendorId, 1));
+            vendorTasks.push(Promise.all(promises));
+        }
     }
+    return (await Promise.all(vendorTasks)).flat().flat();
 }
-
-const vendorTasks = [];
-for (const vendorId in vendors) {
-    if (Object.hasOwnProperty.call(vendors, vendorId)) {
-        const vendor = vendors[vendorId];
-        let promises = vendor.menuItems.map(mi => getTimes(mi.id, mi.name, vendorId, 1));
-        vendorTasks.push(Promise.all(promises));
-    }
-}
-
-console.log(vendors);
-drawVendorsAndMenuItems();
-spinner.style.display = 'none';
-let allTimes = (await Promise.all(vendorTasks)).flat().flat();
-const days = new Set(allTimes.map(t => t.label));
-setupTimeslotSelector(days);
 
 function sanitizeImageUrl(url) {
     try {
@@ -318,9 +285,8 @@ function sanitizeId(id) {
 }
 
 function validateVendor(vendor) {
-    const required = ['name', 'routeName', 'imageUrl'];
-    return required.every(prop => typeof vendor[prop] === 'string') &&
-           typeof vendor.visible === 'boolean';
+    const required = ['name', 'routeName'];
+    return required.every(prop => typeof vendor[prop] === 'string');
 }
 
 function validateMenuItem(item) {
@@ -330,3 +296,77 @@ function validateMenuItem(item) {
            typeof item.Cost === 'number' &&
            /^\d+$/.test(item.Cost);
 }
+
+
+/**
+ * @typedef {Object} MainConfig
+ * @property {number} [messageTimeout=5000] - Timeout for reading messages in milliseconds
+ * @property {string[]} [excludedVendors=['compassdk_townhallcafe', 'compassdk_centralcafe']] - Vendors to exclude
+ * @property {string} [clientUnitsPath='/clientUnits/compassdk_danskebank/all'] - Path for client units query
+ */
+
+/**
+ * @param {MainConfig} config - Configuration options for the main function
+ */
+async function main(config = {}) {
+    const {
+        messageTimeout = 5000,
+        excludedVendors = ['compassdk_townhallcafe', 'compassdk_centralcafe'],
+        clientUnitsPath = '/clientUnits/compassdk_danskebank/all'
+    } = config;
+
+    const vendors = {};
+    const spinner = document.getElementById('load-icon');
+    spinner.innerText = getRandomFoodIcon();
+    
+    try {
+        const client = new ApiClient();
+        await client.start();
+        
+        const firstMessage = await client.readMessage(messageTimeout);
+        if (firstMessage === null) {
+            throw new Error("Client Api connection not initialized correctly");
+        }
+
+        await client.submitMessage('q', { p: clientUnitsPath, h: "" });
+        const listVendorResponse = await client.readMessage(messageTimeout);
+        messageHandler(vendors, listVendorResponse);
+
+        for (const excludedVendor of excludedVendors) {
+            delete vendors[excludedVendor];
+        }
+
+        // Fetch menus for all non-excluded vendors
+        for (const vendorRoute in vendors) {
+            if (Object.hasOwnProperty.call(vendors, vendorRoute)) {
+                const vendor = vendors[vendorRoute];
+                try {
+                    await client.submitMessage('q', { p: `/Clients/${vendor.routeName}/activeMenu/categories`, h:"" });
+                    const menu = await client.readMessage(messageTimeout/10);
+                    messageHandler(vendors, menu);
+                } catch (error) {
+                    console.error("Error fetching menu for vendor", vendorRoute, error);
+                }
+            }
+        }
+
+        drawVendorsAndMenuItems(vendors);
+        
+        const allTimes = await fetchAllTimeslots(vendors);
+        const days = new Set(allTimes.map(t => t.label));
+        setupTimeslotSelector(allTimes, days);
+
+        return { success: true, vendors, allTimes };
+
+    } catch (error) {
+        console.error("Error in main:", error);
+        return { success: false, error };
+    } finally {
+        spinner.style.display = 'none';
+    }
+}
+
+
+// Start the application with default config
+main({ 
+}).catch(console.error);

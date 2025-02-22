@@ -61,7 +61,7 @@ class ApiClient {
                 }
                 break;
             case 'd': // Data maybe?
-                console.log("D syle message", message);
+                // console.log("D syle message", message);
                 let id = data.d.r;
                 let responseHandler = this.responseMap[id];
                 if (id !== undefined && responseHandler !== undefined) {
@@ -79,7 +79,7 @@ class ApiClient {
         }
     }
 
-    submitMessage(type, body, timeout=5000) {
+    submitMessage(type, body, timeout=10000) {
         let result = new Promise((resolve, reject) => {
             const id = this.nextMessageId++;
             this.responseMap[id] = resolve;
