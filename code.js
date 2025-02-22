@@ -3,10 +3,11 @@ import { ApiClient } from "./ApiClient.js";
 const messageHandler = e => {
     const path = e?.d?.b?.p;
     if (path === undefined) {
+        console.error("No path in message", e);
         return;
     }
+
     if (path === "clientUnits/compassdk_danskebank/all") {
-        // let theMarket = e.d.b.d[0];
         for (const index in e.d.b.d) {
             let location = e.d.b.d[index];
             console.log(location);
@@ -18,6 +19,7 @@ const messageHandler = e => {
                         routeName: vendor.routeName,
                         imageUrl: vendor.imageUrl,
                         menuItems: [],
+                        visible: vendor.visible,
                     }
                 }
             }
@@ -28,6 +30,7 @@ const messageHandler = e => {
                     routeName: vendor.routeName,
                     imageUrl: vendor.imageUrl,
                     menuItems: [],
+                    visible: vendor.visible,
                 }
             }
         }
@@ -52,6 +55,7 @@ const messageHandler = e => {
                     imageUrl: menuItem.ImageUrl,
                     id: menuItem.key,
                     timeslots: [],
+                    price: Number(menuItem.Cost) / 100,
                 });
             }
         }
@@ -66,6 +70,10 @@ const createVendorElement = (vendor) => {
     img.setAttribute("src", vendor.imageUrl);
     const text = templateInstance.querySelector(".vendor-name");
     text.textContent = vendor.name;
+    // Hide the vendor if it is not visible
+    if (vendor.visible === false) {
+        vendorElement.style.display = "none";
+    }
     return templateInstance;
 };
 
@@ -74,7 +82,7 @@ const createMenuItemElement = (vendor, menuItem) => {
     const imgs = templateInstance.querySelectorAll("img");
     imgs.forEach((i) => i.src = menuItem.imageUrl);
     const text = templateInstance.querySelectorAll(".item-name");
-    text.forEach((i) => i.textContent = menuItem.name);
+    text.forEach((i) => i.textContent = `${menuItem.name} - ${menuItem.price} kr.`);
     const timespans = templateInstance.querySelector(".timespans");
     timespans.setAttribute("id", `timespans-${vendor.routeName}-${menuItem.id}`);
     const spinner = templateInstance.querySelector(".spinner");
