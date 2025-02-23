@@ -265,12 +265,15 @@ const setupTimeslotSelector = (allTimes, dayLabels) => {
 // Helper function to fetch all timeslots
 async function fetchAllTimeslots(vendors) {
     const vendorTasks = [];
-    for (const vendorId in vendors) {
-        if (Object.hasOwnProperty.call(vendors, vendorId)) {
-            const vendor = vendors[vendorId];
-            const promises = vendor.menuItems.map(mi => getTimes(mi.id, mi.name, vendorId, 1));
-            vendorTasks.push(Promise.all(promises));
+    for (const vendorId of Object.keys(vendors)) {
+        const vendor = vendors[vendorId];
+        if (vendor.visible === false) {
+            continue;
         }
+        
+        const promises = vendor.menuItems.map(mi => getTimes(mi.id, mi.name, vendorId, 1));
+        vendorTasks.push(Promise.all(promises));
+        
     }
     return (await Promise.all(vendorTasks)).flat().flat();
 }
@@ -403,6 +406,7 @@ async function main(config = {}) {
         for (const excludedVendor of excludedVendors) {
             delete vendors[excludedVendor];
         }
+
 
         // Shuffle the vendor list based on the day of the year
         const dayOfYear = getDayOfYear(new Date());
