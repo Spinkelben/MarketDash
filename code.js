@@ -183,7 +183,13 @@ const getTimes = async (id, name, vendor, quantity) => {
                 ]
             })});
     
+    if (result.status !== 200) {
+        console.error("Failed to fetch timeslots", name, vendor, result);
+        return [];
+    }
+    
     let times = await result.json();
+
     let flattened = [];
     if (times.length > 0)
     {
