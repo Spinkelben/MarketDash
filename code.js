@@ -433,7 +433,7 @@ async function main(config = {}) {
         const days = new Set(allTimes.map(t => t.label));
         setupTimeslotSelector(allTimes, days);
 
-        // Add hidden button to enable god mode
+        // Add hidden button to enable querying other locations than danske bank
         if (document.getElementById("god-mode-button") === null) {
             const godModeButton = document.createElement("button");
             godModeButton.textContent = "Enable God Mode";
