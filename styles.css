@@ -80,6 +80,14 @@ h1,h2,h3 {
     color: var(--font-color);
 }
 
+header {
+    text-align: center;
+}
+
+header h1 {
+    margin-bottom: 1em;
+}
+
 h2,h3 {
     display: inline;
     font-weight: normal;
@@ -155,6 +163,37 @@ select {
     border-radius: 10px;
 }
 
+.result-dish-details {
+    background-color: var(--accent-color);
+    border-radius: 10px;
+    max-width: 80vw;
+    max-height: 80vh;
+}
+
+.result-details-img {
+    max-width: 75vw;
+    min-width: 50vw;
+    max-height: 30vh;
+    object-fit: contain;
+    margin: 0 auto;
+    display: block;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.result-details-name {
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--primary-color);
+    text-align: center;
+}
+
+.result-details-description {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    color: var(--font-color);
+    padding: 1em;
+    text-align: left;
+}
+
 dialog button {
     display: block;
 }
@@ -215,4 +254,228 @@ main {
 
 .menu-item-header h3 {
     margin: 0;
+}
+
+/* Header controls styling */
+.header-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1em;
+    margin-bottom: 1em;
+}
+
+.random-dish-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.5em 1em;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+    margin-bottom: 1em;
+}
+
+.random-dish-btn:hover {
+    background-color: #1456b8;
+}
+
+/* Random Dish Dialog Styles */
+.random-dish-modal {
+    border: none;
+    border-radius: 15px;
+    padding: 0;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.random-dish-modal::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(3px);
+}
+
+.random-dish-content {
+    padding: 2em;
+    text-align: center;
+    background-color: var(--bg-color);
+    border-radius: 15px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.random-dish-content h2 {
+    margin-top: 0;
+    color: var(--primary-color);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.spinning-container {
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.spinning-dish {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1em;
+    animation: spinPulse 0.1s ease-in-out infinite alternate;
+}
+
+@keyframes spinPulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.05); }
+}
+
+.spinning-vendor-img, .result-vendor-img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.spinning-dish-img, .result-dish-img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.spinning-dish-name {
+    font-size: 1.2em;
+    margin: 0;
+    color: var(--font-color);
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.result-container {
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.result-dish {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1em;
+}
+
+.result-dish h3 {
+    margin: 0;
+    color: var(--enabled-color);
+    font-size: 1.5em;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.result-vendor {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    background-color: var(--accent-color);
+    padding: 0.5em 1em;
+    border-radius: 10px;
+}
+
+.result-vendor-name {
+    font-weight: bold;
+    color: var(--font-color);
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.result-dish-name {
+    font-size: 1.3em;
+    margin: 0;
+    color: var(--primary-color);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.result-timeslots {
+    margin-top: 1em;
+    text-align: center;
+}
+
+.result-timeslots h4 {
+    margin: 0 0 0.5em 0;
+    color: var(--font-color);
+    font-size: 1em;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.result-timeslots-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    justify-content: center;
+}
+
+.result-timeslot {
+    padding: 0.3em 0.6em;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: bold;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.result-timeslot.enabled {
+    background-color: var(--enabled-color);
+    color: white;
+}
+
+.result-timeslot.disabled {
+    background-color: var(--disabled-color);
+    color: white;
+}
+
+.no-times {
+    color: #666;
+    font-style: italic;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.random-dish-buttons {
+    display: flex;
+    gap: 1em;
+    justify-content: center;
+    margin-top: 1.5em;
+}
+
+.spin-btn, .close-btn {
+    padding: 0.75em 1.5em;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    transition: all 0.3s ease;
+}
+
+.spin-btn {
+    background-color: var(--enabled-color);
+    color: white;
+}
+
+.spin-btn:hover:not(:disabled) {
+    background-color: #155a05;
+}
+
+.spin-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.close-btn {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.close-btn:hover {
+    background-color: #333;
 }
