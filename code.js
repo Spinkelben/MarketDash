@@ -156,11 +156,11 @@ const getRandomFoodIcon = () => {
 }
 
 /**
- * Gets the availabel times for the menu item
+ * Gets the available times for the menu item
  * @param {string} id Id of the product
- * @param {string} name Name of the prodcut
+ * @param {string} name Name of the product
  * @param {string} vendor vendor name
- * @param {Number} quantity Number of itmes to purchase
+ * @param {Number} quantity Number of items to purchase
  * @returns {Promise<any[]>} The list of times
  */
 const getTimes = async (id, name, vendor, quantity) => {
@@ -432,6 +432,9 @@ async function main(config = {}) {
         const allTimes = await fetchAllTimeslots(vendors);
         const days = new Set(allTimes.map(t => t.label));
         setupTimeslotSelector(allTimes, days);
+        
+        // Setup random dish selector
+        setupRandomDishSelector(vendors, allTimes);
 
         // Add hidden button to enable querying other locations than danske bank
         if (document.getElementById("god-mode-button") === null) {
@@ -455,6 +458,249 @@ async function main(config = {}) {
         spinner.style.display = 'none';
     }
 }
+
+// Random Dish Selector functionality
+const setupRandomDishSelector = (vendors, allTimes) => {
+    const randomDishBtn = document.getElementById('random-dish-btn');
+    const dialog = document.getElementById('random-dish-dialog');
+    const spinButton = document.getElementById('spin-button');
+    const closeButton = document.getElementById('close-random-dialog');
+    const spinningContainer = document.getElementById('spinning-container');
+    const resultContainer = document.getElementById('result-container');
+    
+    // Get all available dishes from all vendors
+    const getAllDishes = () => {
+        const allDishes = [];
+        for (const vendorRoute in vendors) {
+            const vendor = vendors[vendorRoute];
+            if (vendor.visible && vendor.menuItems.length > 0) {
+                vendor.menuItems.forEach(item => {
+                    allDishes.push({
+                        vendor: vendor,
+                        dish: item
+                    });
+                });
+            }
+        }
+        return allDishes;
+    };
+    
+    // Update spinning display with a dish
+    const updateSpinningDisplay = (dishData) => {
+        const spinningVendorImg = document.querySelector('.spinning-vendor-img');
+        const spinningDishName = document.querySelector('.spinning-dish-name');
+        const spinningDishImg = document.querySelector('.spinning-dish-img');
+        
+        // Show images when we start spinning
+        spinningVendorImg.style.display = 'block';
+        spinningDishImg.style.display = 'block';
+        
+        spinningVendorImg.src = dishData.vendor.imageUrl || '';
+        spinningVendorImg.alt = dishData.vendor.name;
+        spinningDishName.textContent = dishData.dish.name;
+        spinningDishImg.src = dishData.dish.imageUrl || '';
+        spinningDishImg.alt = dishData.dish.name;
+        
+        // Handle cases where images might not load
+        spinningVendorImg.onerror = () => { spinningVendorImg.style.display = 'none'; };
+        spinningDishImg.onerror = () => { spinningDishImg.style.display = 'none'; };
+    };
+    
+    // Show final result
+    const showResult = (selectedDish) => {
+        const resultVendorImg = document.querySelector('.result-vendor-img');
+        const resultVendorName = document.querySelector('.result-vendor-name');
+        const resultDishName = document.querySelector('.result-dish-name');
+        const resultDishImg = document.querySelector('.result-dish-img');
+        const resultTimeslotsList = document.querySelector('.result-timeslots-list');
+        
+        resultVendorImg.src = selectedDish.vendor.imageUrl || '';
+        resultVendorImg.alt = selectedDish.vendor.name;
+        resultVendorName.textContent = selectedDish.vendor.name;
+        resultDishName.textContent = selectedDish.dish.name;
+        resultDishImg.src = selectedDish.dish.imageUrl || '';
+        resultDishImg.alt = selectedDish.dish.name;
+        
+        // Setup details dialog for the result dish
+        const resultDetailsDialog = document.querySelector('.result-dish-details');
+        const resultDetailsName = document.querySelector('.result-details-name');
+        const resultDetailsImg = document.querySelector('.result-details-img');
+        const resultDetailsDescription = document.querySelector('.result-details-description');
+        const resultDetailsCloseBtn = resultDetailsDialog.querySelector('button');
+        
+        // Populate details dialog
+        resultDetailsName.textContent = selectedDish.dish.name;
+        resultDetailsImg.src = selectedDish.dish.imageUrl || '';
+        resultDetailsImg.alt = selectedDish.dish.name;
+        resultDetailsDescription.textContent = selectedDish.dish.descriptionLong || selectedDish.dish.description || 'No description available';
+        
+        // Add click event to result dish image
+        resultDishImg.addEventListener('click', () => {
+            resultDetailsDialog.showModal();
+        });
+        
+        // Setup close functionality for details dialog
+        resultDetailsCloseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resultDetailsDialog.close();
+        });
+        
+        // Click outside to close details dialog
+        resultDetailsDialog.addEventListener('click', (e) => {
+            const dialogRect = e.target.getBoundingClientRect();
+            const x = e.clientX;
+            const y = e.clientY;
+            const isInDialog = x >= dialogRect.left && x <= dialogRect.right && 
+                              y >= dialogRect.top && y <= dialogRect.bottom;
+            if (!isInDialog) {
+                resultDetailsDialog.close();
+                e.stopPropagation();
+            }
+        });
+        
+        // Get today's timeslots for this specific dish
+        // Debug logging to understand the data structure
+        console.log('Selected dish vendor routeName:', selectedDish.vendor.routeName);
+        console.log('Selected dish ID:', selectedDish.dish.id);
+        console.log('All times sample:', allTimes.slice(0, 5));
+        console.log('Available days:', [...new Set(allTimes.map(t => t.label))]);
+        
+        // Get current day in the same format as the system uses
+        const dayLabels = [...new Set(allTimes.map(t => t.label))];
+        const today = dayLabels.length > 0 ? dayLabels[0] : null; // Use first available day for testing
+        
+        console.log('Using day:', today);
+        
+        // Get timeslots for this specific dish - try different matching approaches
+        let todaysTimeslots = allTimes.filter(t => 
+            t.label === today && 
+            t.vendor === selectedDish.vendor.routeName && 
+            t.id === selectedDish.dish.id
+        );
+        
+        console.log('Timeslots found (exact match):', todaysTimeslots.length);
+        
+        // If no exact match, try with sanitized IDs
+        if (todaysTimeslots.length === 0) {
+            todaysTimeslots = allTimes.filter(t => 
+                t.label === today && 
+                t.vendor === sanitizeId(selectedDish.vendor.routeName) && 
+                t.id === sanitizeId(selectedDish.dish.id)
+            );
+            console.log('Timeslots found (sanitized match):', todaysTimeslots.length);
+        }
+        
+        // Clear previous timeslots
+        resultTimeslotsList.innerHTML = '';
+        
+        if (todaysTimeslots.length > 0) {
+            const dateTimeFormatter = Intl.DateTimeFormat(
+                'da-dk', 
+                { 
+                    hour: "numeric",
+                    minute: "numeric",
+                });
+            
+            todaysTimeslots.sort((a, b) => a.date - b.date).forEach(timeslot => {
+                const timeslotElement = document.createElement("span");
+                const time = Date.parse(timeslot.dateISO);
+                timeslotElement.textContent = dateTimeFormatter.format(time);
+                timeslotElement.className = `${timeslot.enabled ? "enabled" : "disabled"} timeslot result-timeslot`;
+                resultTimeslotsList.appendChild(timeslotElement);
+            });
+        } else {
+            const noTimesElement = document.createElement("span");
+            noTimesElement.textContent = "Sorry, no pickup times available today. Try another day!";
+            noTimesElement.className = "no-times";
+            resultTimeslotsList.appendChild(noTimesElement);
+        }
+        
+        spinningContainer.style.display = 'none';
+        resultContainer.style.display = 'block';
+        spinButton.style.display = 'none';
+    };
+    
+    // Reset dialog to initial state
+    const resetDialog = () => {
+        spinningContainer.style.display = 'block';
+        resultContainer.style.display = 'none';
+        spinButton.style.display = 'inline-block';
+        
+        // Set initial default values
+        const spinningVendorImg = document.querySelector('.spinning-vendor-img');
+        const spinningDishName = document.querySelector('.spinning-dish-name');
+        const spinningDishImg = document.querySelector('.spinning-dish-img');
+        
+        spinningVendorImg.style.display = 'none'; // Hide until we have actual images
+        spinningDishImg.style.display = 'none'; // Hide until we have actual images
+        spinningDishName.textContent = 'Ready to discover your next meal? Hit "Surprise Me!" 😋';
+    };
+    
+    // Spin animation
+    const spinThroughDishes = async (allDishes) => {
+        const spinDuration = 3000; // 3 seconds
+        const spinInterval = 100; // Update every 100ms
+        const totalSteps = spinDuration / spinInterval;
+        let currentStep = 0;
+        
+        return new Promise((resolve) => {
+            const spinInterval_id = setInterval(() => {
+                const randomIndex = Math.floor(Math.random() * allDishes.length);
+                updateSpinningDisplay(allDishes[randomIndex]);
+                
+                currentStep++;
+                if (currentStep >= totalSteps) {
+                    clearInterval(spinInterval_id);
+                    // Select final random dish
+                    const finalIndex = Math.floor(Math.random() * allDishes.length);
+                    resolve(allDishes[finalIndex]);
+                }
+            }, spinInterval);
+        });
+    };
+    
+    // Event listeners
+    randomDishBtn.addEventListener('click', () => {
+        resetDialog();
+        dialog.showModal();
+    });
+    
+        spinButton.addEventListener('click', async () => {
+        const allDishes = getAllDishes();
+        if (allDishes.length === 0) {
+            alert('Oops! No dishes are available right now. Please try again later.');
+            return;
+        }
+        
+        spinButton.disabled = true;
+        spinButton.textContent = 'Finding something delicious...';
+        
+        // Update the text to show we're selecting
+        document.querySelector('.spinning-dish-name').textContent = 'Looking for the perfect dish...';        try {
+            const selectedDish = await spinThroughDishes(allDishes);
+            showResult(selectedDish);
+        } finally {
+            spinButton.disabled = false;
+            spinButton.textContent = '🎲 Surprise Me!';
+        }
+    });
+    
+    closeButton.addEventListener('click', () => {
+        dialog.close();
+    });
+    
+    // Close dialog when clicking outside
+    dialog.addEventListener('click', (e) => {
+        const dialogRect = e.target.getBoundingClientRect();
+        const x = e.clientX;
+        const y = e.clientY;
+        const isInDialog = x >= dialogRect.left && x <= dialogRect.right && 
+                          y >= dialogRect.top && y <= dialogRect.bottom;
+        if (!isInDialog) {
+            dialog.close();
+        }
+    });
+};
 
 
 export { main };
