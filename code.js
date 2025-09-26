@@ -468,6 +468,53 @@ const setupRandomDishSelector = (vendors, allTimes) => {
     const spinningContainer = document.getElementById('spinning-container');
     const resultContainer = document.getElementById('result-container');
     
+    // Preload all images when dialog opens and store in loadedImages Map
+    const preloadImages = (dishes) => {
+        const promises = dishes.map(dishData => {
+            return new Promise((resolve) => {
+                let loadedCount = 0;
+                const totalImages = 2;
+                
+                const checkComplete = () => {
+                    loadedCount++;
+                    if (loadedCount >= totalImages) {
+                        resolve();
+                    }
+                };
+                
+                // Preload vendor image
+                if (dishData.vendor.imageUrl && !loadedImages.has(dishData.vendor.imageUrl)) {
+                    const vendorImg = new Image();
+                    vendorImg.crossOrigin = 'anonymous';  // For canvas compatibility
+                    vendorImg.onload = () => {
+                        loadedImages.set(dishData.vendor.imageUrl, vendorImg);
+                        checkComplete();
+                    };
+                    vendorImg.onerror = () => checkComplete(); // Continue even if image fails
+                    vendorImg.src = dishData.vendor.imageUrl;
+                } else {
+                    checkComplete();
+                }
+                
+                // Preload dish image
+                if (dishData.dish.imageUrl && !loadedImages.has(dishData.dish.imageUrl)) {
+                    const dishImg = new Image();
+                    dishImg.crossOrigin = 'anonymous';  // For canvas compatibility
+                    dishImg.onload = () => {
+                        loadedImages.set(dishData.dish.imageUrl, dishImg);
+                        checkComplete();
+                    };
+                    dishImg.onerror = () => checkComplete(); // Continue even if image fails
+                    dishImg.src = dishData.dish.imageUrl;
+                } else {
+                    checkComplete();
+                }
+            });
+        });
+        
+        return Promise.all(promises);
+    };
+    
     // Get all available dishes from all vendors
     const getAllDishes = () => {
         const allDishes = [];
@@ -485,25 +532,93 @@ const setupRandomDishSelector = (vendors, allTimes) => {
         return allDishes;
     };
     
-    // Update spinning display with a dish
-    const updateSpinningDisplay = (dishData) => {
-        const spinningVendorImg = document.querySelector('.spinning-vendor-img');
+    // Create canvas-based image rendering to avoid network requests
+    let vendorCanvas = null;
+    let dishCanvas = null;
+    let currentVendorImg = null;
+    let currentDishImg = null;
+    let loadedImages = new Map();
+    
+    // Initialize canvas elements for spinning display
+    const initCanvases = () => {
+        const spinningContainer = document.getElementById('spinning-container');
+        
+        // Create vendor canvas if it doesn't exist
+        if (!vendorCanvas) {
+            vendorCanvas = document.createElement('canvas');
+            vendorCanvas.width = 60;
+            vendorCanvas.height = 60;
+            vendorCanvas.className = 'spinning-vendor-canvas';
+            vendorCanvas.style.borderRadius = '8px';
+            vendorCanvas.style.objectFit = 'cover';
+            
+            // Replace the vendor img with canvas
+            const vendorImg = document.querySelector('.spinning-vendor-img');
+            if (vendorImg) {
+                vendorImg.parentNode.replaceChild(vendorCanvas, vendorImg);
+            }
+        }
+        
+        // Create dish canvas if it doesn't exist
+        if (!dishCanvas) {
+            dishCanvas = document.createElement('canvas');
+            dishCanvas.width = 120;
+            dishCanvas.height = 120;
+            dishCanvas.className = 'spinning-dish-canvas';
+            dishCanvas.style.borderRadius = '12px';
+            dishCanvas.style.objectFit = 'cover';
+            
+            // Replace the dish img with canvas
+            const dishImg = document.querySelector('.spinning-dish-img');
+            if (dishImg) {
+                dishImg.parentNode.replaceChild(dishCanvas, dishImg);
+            }
+        }
+    };
+    
+    // Draw image to canvas
+    const drawToCanvas = (canvas, imageUrl, fallbackColor = '#ddd') => {
+        const ctx = canvas.getContext('2d');
+        if (loadedImages.has(imageUrl)) {
+            const img = loadedImages.get(imageUrl);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        } else {
+            ctx.fillStyle = fallbackColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#666';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('🍽️', canvas.width/2, canvas.height/2 + 5);
+        }
+    };
+    
+    // Update spinning display with a dish - zero network requests during spin
+    const updateSpinningDisplay = (dishData, imageCache) => {
+        initCanvases();
+        
         const spinningDishName = document.querySelector('.spinning-dish-name');
-        const spinningDishImg = document.querySelector('.spinning-dish-img');
         
-        // Show images when we start spinning
-        spinningVendorImg.style.display = 'block';
-        spinningDishImg.style.display = 'block';
+        // Show canvases during spinning
+        vendorCanvas.style.display = 'block';
+        dishCanvas.style.display = 'block';
         
-        spinningVendorImg.src = dishData.vendor.imageUrl || '';
-        spinningVendorImg.alt = dishData.vendor.name;
+        // Get the URLs to use
+        const vendorSrc = dishData.vendor.imageUrl || '';
+        const dishSrc = dishData.dish.imageUrl || '';
+        
+        // Only redraw if the image actually changed - no network activity
+        if (currentVendorImg !== vendorSrc) {
+            drawToCanvas(vendorCanvas, vendorSrc, '#ccc');
+            currentVendorImg = vendorSrc;
+        }
+        
         spinningDishName.textContent = dishData.dish.name;
-        spinningDishImg.src = dishData.dish.imageUrl || '';
-        spinningDishImg.alt = dishData.dish.name;
         
-        // Handle cases where images might not load
-        spinningVendorImg.onerror = () => { spinningVendorImg.style.display = 'none'; };
-        spinningDishImg.onerror = () => { spinningDishImg.style.display = 'none'; };
+        if (currentDishImg !== dishSrc) {
+            drawToCanvas(dishCanvas, dishSrc, '#ddd');
+            currentDishImg = dishSrc;
+        }
     };
     
     // Show final result
@@ -513,38 +628,75 @@ const setupRandomDishSelector = (vendors, allTimes) => {
         const resultDishName = document.querySelector('.result-dish-name');
         const resultDishImg = document.querySelector('.result-dish-img');
         const resultTimeslotsList = document.querySelector('.result-timeslots-list');
-        
-        resultVendorImg.src = selectedDish.vendor.imageUrl || '';
-        resultVendorImg.alt = selectedDish.vendor.name;
+
+        // Replace resultVendorImg with canvas
+        let resultVendorCanvas = document.querySelector('.result-vendor-canvas');
+        if (!resultVendorCanvas) {
+            resultVendorCanvas = document.createElement('canvas');
+            resultVendorCanvas.width = 60;
+            resultVendorCanvas.height = 60;
+            resultVendorCanvas.className = 'result-vendor-canvas';
+            resultVendorCanvas.style.borderRadius = '8px';
+            resultVendorCanvas.style.objectFit = 'cover';
+            resultVendorImg.parentNode.replaceChild(resultVendorCanvas, resultVendorImg);
+        }
+
+        // Replace resultDishImg with canvas
+        let resultDishCanvas = document.querySelector('.result-dish-canvas');
+        if (!resultDishCanvas) {
+            resultDishCanvas = document.createElement('canvas');
+            resultDishCanvas.width = 120;
+            resultDishCanvas.height = 120;
+            resultDishCanvas.className = 'result-dish-canvas';
+            resultDishCanvas.style.borderRadius = '12px';
+            resultDishCanvas.style.objectFit = 'cover';
+            resultDishImg.parentNode.replaceChild(resultDishCanvas, resultDishImg);
+        }
+
+        // Draw images from cache
+        const vendorSrc = selectedDish.vendor.imageUrl || '';
+        const dishSrc = selectedDish.dish.imageUrl || '';
+        drawToCanvas(resultVendorCanvas, vendorSrc, '#ccc');
+        drawToCanvas(resultDishCanvas, dishSrc, '#ddd');
+
         resultVendorName.textContent = selectedDish.vendor.name;
         resultDishName.textContent = selectedDish.dish.name;
-        resultDishImg.src = selectedDish.dish.imageUrl || '';
-        resultDishImg.alt = selectedDish.dish.name;
-        
+
         // Setup details dialog for the result dish
         const resultDetailsDialog = document.querySelector('.result-dish-details');
         const resultDetailsName = document.querySelector('.result-details-name');
         const resultDetailsImg = document.querySelector('.result-details-img');
         const resultDetailsDescription = document.querySelector('.result-details-description');
         const resultDetailsCloseBtn = resultDetailsDialog.querySelector('button');
-        
+
+        // Replace resultDetailsImg with canvas
+        let resultDetailsCanvas = document.querySelector('.result-details-canvas');
+        if (!resultDetailsCanvas) {
+            resultDetailsCanvas = document.createElement('canvas');
+            resultDetailsCanvas.width = 120;
+            resultDetailsCanvas.height = 120;
+            resultDetailsCanvas.className = 'result-details-canvas';
+            resultDetailsCanvas.style.borderRadius = '12px';
+            resultDetailsCanvas.style.objectFit = 'cover';
+            resultDetailsImg.parentNode.replaceChild(resultDetailsCanvas, resultDetailsImg);
+        }
+        drawToCanvas(resultDetailsCanvas, dishSrc, '#ddd');
+
         // Populate details dialog
         resultDetailsName.textContent = selectedDish.dish.name;
-        resultDetailsImg.src = selectedDish.dish.imageUrl || '';
-        resultDetailsImg.alt = selectedDish.dish.name;
         resultDetailsDescription.textContent = selectedDish.dish.descriptionLong || selectedDish.dish.description || 'No description available';
-        
-        // Add click event to result dish image
-        resultDishImg.addEventListener('click', () => {
+
+        // Add click event to result dish canvas
+        resultDishCanvas.addEventListener('click', () => {
             resultDetailsDialog.showModal();
         });
-        
+
         // Setup close functionality for details dialog
         resultDetailsCloseBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             resultDetailsDialog.close();
         });
-        
+
         // Click outside to close details dialog
         resultDetailsDialog.addEventListener('click', (e) => {
             const dialogRect = e.target.getBoundingClientRect();
@@ -557,42 +709,19 @@ const setupRandomDishSelector = (vendors, allTimes) => {
                 e.stopPropagation();
             }
         });
-        
+
         // Get today's timeslots for this specific dish
-        // Debug logging to understand the data structure
-        console.log('Selected dish vendor routeName:', selectedDish.vendor.routeName);
-        console.log('Selected dish ID:', selectedDish.dish.id);
-        console.log('All times sample:', allTimes.slice(0, 5));
-        console.log('Available days:', [...new Set(allTimes.map(t => t.label))]);
-        
-        // Get current day in the same format as the system uses
-        const dayLabels = [...new Set(allTimes.map(t => t.label))];
-        const today = dayLabels.length > 0 ? dayLabels[0] : null; // Use first available day for testing
-        
-        console.log('Using day:', today);
-        
-        // Get timeslots for this specific dish - try different matching approaches
+        const today = new Date().toLocaleDateString('da-dk', { weekday: 'long' });
+
         let todaysTimeslots = allTimes.filter(t => 
             t.label === today && 
             t.vendor === selectedDish.vendor.routeName && 
             t.id === selectedDish.dish.id
         );
-        
-        console.log('Timeslots found (exact match):', todaysTimeslots.length);
-        
-        // If no exact match, try with sanitized IDs
-        if (todaysTimeslots.length === 0) {
-            todaysTimeslots = allTimes.filter(t => 
-                t.label === today && 
-                t.vendor === sanitizeId(selectedDish.vendor.routeName) && 
-                t.id === sanitizeId(selectedDish.dish.id)
-            );
-            console.log('Timeslots found (sanitized match):', todaysTimeslots.length);
-        }
-        
+
         // Clear previous timeslots
         resultTimeslotsList.innerHTML = '';
-        
+
         if (todaysTimeslots.length > 0) {
             const dateTimeFormatter = Intl.DateTimeFormat(
                 'da-dk', 
@@ -600,7 +729,7 @@ const setupRandomDishSelector = (vendors, allTimes) => {
                     hour: "numeric",
                     minute: "numeric",
                 });
-            
+
             todaysTimeslots.sort((a, b) => a.date - b.date).forEach(timeslot => {
                 const timeslotElement = document.createElement("span");
                 const time = Date.parse(timeslot.dateISO);
@@ -614,7 +743,7 @@ const setupRandomDishSelector = (vendors, allTimes) => {
             noTimesElement.className = "no-times";
             resultTimeslotsList.appendChild(noTimesElement);
         }
-        
+
         spinningContainer.style.display = 'none';
         resultContainer.style.display = 'block';
         spinButton.style.display = 'none';
@@ -626,18 +755,41 @@ const setupRandomDishSelector = (vendors, allTimes) => {
         resultContainer.style.display = 'none';
         spinButton.style.display = 'inline-block';
         
-        // Set initial default values
-        const spinningVendorImg = document.querySelector('.spinning-vendor-img');
-        const spinningDishName = document.querySelector('.spinning-dish-name');
-        const spinningDishImg = document.querySelector('.spinning-dish-img');
+        // Reset image tracking
+        currentVendorImg = null;
+        currentDishImg = null;
         
-        spinningVendorImg.style.display = 'none'; // Hide until we have actual images
-        spinningDishImg.style.display = 'none'; // Hide until we have actual images
-        spinningDishName.textContent = 'Ready to discover your next meal? Hit "Surprise Me!" 😋';
+        // Set initial message
+        document.querySelector('.spinning-dish-name').textContent = 'Ready to discover your next meal? Hit "Surprise Me!" 😋';
+        
+        // Hide canvas elements initially
+        if (vendorCanvas) {
+            vendorCanvas.style.display = 'none';
+        }
+        if (dishCanvas) {
+            dishCanvas.style.display = 'none';
+        }
+        
+        // Also hide any remaining img elements
+        const vendorImg = document.querySelector('.spinning-vendor-img');
+        const dishImg = document.querySelector('.spinning-dish-img');
+        if (vendorImg) vendorImg.style.display = 'none';
+        if (dishImg) dishImg.style.display = 'none';
     };
     
-    // Spin animation
+    // Spin animation with preloading
     const spinThroughDishes = async (allDishes) => {
+        // Show loading message and start preloading images
+        document.querySelector('.spinning-dish-name').textContent = 'Loading delicious options...';
+        spinButton.textContent = 'Preparing images...';
+        
+        // Preload a subset of images (first 20) for faster startup
+        const imagesToPreload = allDishes.slice(0, Math.min(20, allDishes.length));
+        await preloadImages(imagesToPreload);
+        
+        spinButton.textContent = 'Finding something delicious...';
+        document.querySelector('.spinning-dish-name').textContent = 'Looking for the perfect dish...';
+        
         const spinDuration = 3000; // 3 seconds
         const spinInterval = 100; // Update every 100ms
         const totalSteps = spinDuration / spinInterval;
@@ -665,7 +817,7 @@ const setupRandomDishSelector = (vendors, allTimes) => {
         dialog.showModal();
     });
     
-        spinButton.addEventListener('click', async () => {
+    spinButton.addEventListener('click', async () => {
         const allDishes = getAllDishes();
         if (allDishes.length === 0) {
             alert('Oops! No dishes are available right now. Please try again later.');
@@ -673,10 +825,8 @@ const setupRandomDishSelector = (vendors, allTimes) => {
         }
         
         spinButton.disabled = true;
-        spinButton.textContent = 'Finding something delicious...';
         
-        // Update the text to show we're selecting
-        document.querySelector('.spinning-dish-name').textContent = 'Looking for the perfect dish...';        try {
+        try {
             const selectedDish = await spinThroughDishes(allDishes);
             showResult(selectedDish);
         } finally {
