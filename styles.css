@@ -323,7 +323,7 @@ main {
     flex-direction: column;
     align-items: center;
     gap: 1em;
-    animation: spinPulse 0.1s ease-in-out infinite alternate;
+    animation: none;
 }
 
 @keyframes spinPulse {
