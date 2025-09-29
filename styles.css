@@ -18,6 +18,16 @@ body {
     background-color: var(--bg-color);
 }
 
+.spinner.big {
+    font-size: 16em;
+}
+
+@media (max-width: 600px) {
+    .spinner.big {
+        font-size: 8em;
+    }
+}
+
 .vendor-img {
     max-width: 50px;
     max-height: 50px;
@@ -371,7 +381,7 @@ main {
 .result-dish h3 {
     margin: 0;
     color: var(--enabled-color);
-    font-size: 1.5em;
+    font-size: 1em;
     font-family: Arial, Helvetica, sans-serif;
 }
 
