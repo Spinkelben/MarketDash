@@ -1,9 +1,29 @@
-use rocket::futures::StreamExt;
+use rocket::futures::{StreamExt, TryStreamExt};
 use serde_json::Value;
 
 
 const SOCKET_URL : &str = "wss://s-usc1a-nss-2040.firebaseio.com/.ws?v=5&ns=pq-dev";
 
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+enum MessageType {
+    #[serde(rename = "c")]
+    Control,
+    #[serde(rename = "d")]
+    Data,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+enum MessageData {
+    Header(Value),
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+struct MessageWrapper {
+    #[serde(rename = "t")]
+    r#type: MessageType,
+    #[serde(rename = "d")]
+    data: Value,
+}
 pub struct PubqClient {
     socket_url: String,
     next_id: u64,
@@ -26,15 +46,18 @@ impl PubqClient {
     }
 
     pub async fn receive_message(&mut self) -> Result<String, Box<dyn std::error::Error>> {
+        let mut messages = vec![];
         if let Some(stream) = &mut self.stream {
-            if let Some(msg) = stream.next().await {
-                let msg = msg?;
+            while let Ok(Some(msg)) = stream.try_next().await {
                 if msg.is_text() {
                     let text = msg.into_text()?;
-                    let parsed = serde_json::from_str::<serde_json::Value>(&text)?;
-                    return Ok(text.to_string());
+                    let parsed : MessageWrapper = serde_json::from_str(&text)?;
+                    let result = format!("Received message: {:?}\nRaw: {:#?}", parsed, text.to_string());
+                    messages.push(result.clone());
                 }
             }
+
+            return Ok(messages.join("\n"));
         }
         Err("No message received".into())
     }
