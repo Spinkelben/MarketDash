@@ -1,0 +1,11 @@
+[package]
+name = "backed-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rocket = "0.5.1"
+tokio-tungstenite = { version= "0.28.0", features = ["native-tls"] }
+tokio = { version = "1", features = ["full"] }
+serde = "1.0.228"
+serde_json = "1.0.145"
