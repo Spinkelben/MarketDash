@@ -11,7 +11,7 @@ fn index() -> &'static str {
 }
 
 #[get("/test")]
-async fn test(mut shutdown: Shutdown) -> Result<String, String> {
+async fn test(shutdown: Shutdown) -> Result<String, String> {
     let mut client = pubq_client::PubqClient::new();
     client.connect().await.map_err(|er| format!("Connection failed {:?}", er))?;
     let first_message = client.receive_message(shutdown, Duration::from_secs(5)).await.map_err(|er| format!("Receive failed {:?}", er))?;
