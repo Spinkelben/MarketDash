@@ -1,5 +1,6 @@
 use rocket::{Shutdown, futures::{StreamExt, TryStreamExt}};
 use serde_json::Value;
+use std::time::Duration;
 use tokio::select;
 
 
@@ -63,11 +64,15 @@ impl PubqClient {
         Ok(())
     }
 
-    pub async fn receive_message(&mut self, mut shutdown : Shutdown) -> Result<String, Box<dyn std::error::Error>> {
+    pub async fn receive_message(&mut self, mut shutdown : Shutdown, timeout : Duration) -> Result<String, Box<dyn std::error::Error>> {
         let mut messages = vec![];
         if let Some(stream) = &mut self.stream {
             loop {
                 select! {
+                    _ = tokio::time::sleep(timeout) => {
+                        println!("Timeout reached while waiting for messages.");
+                        break;
+                    },
                     _ = &mut shutdown => {
                         println!("Shutdown signal received, stopping message reception.");
                         return Err("Shutdown".into());
