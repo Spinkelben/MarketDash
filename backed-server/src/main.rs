@@ -1,6 +1,8 @@
 use std::time::Duration;
 
 use rocket::{Shutdown, build, response::content::RawJson};
+use rocket::serde::json::Json;
+use serde::{Deserialize, Serialize};
 use tokio::select;
 mod pubq_client;
 
@@ -60,6 +62,42 @@ async fn get_menu(vendor_id: &str) -> Result<RawJson<String>, String> {
     Ok(RawJson(menu_json))
 }
 
+#[derive(Deserialize, Serialize)]
+struct TimeslotRequest {
+    #[serde(rename = "routeName")]
+    route_name: String,
+    products: Vec<TimeslotProduct>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct TimeslotProduct {
+    #[serde(rename = "bongCategoryId")]
+    bong_category_id: i32,
+    #[serde(rename = "productId")]
+    product_id: String,
+    #[serde(rename = "productName")]
+    product_name: String,
+    quantity: u32,
+}
+
+#[post("/timeslots", data = "<body>")]
+async fn get_item_timeslots(body : Json<TimeslotRequest>) -> Result<RawJson<String>, String> {
+    let request = body.into_inner();
+    let json = serde_json::to_string(&request)
+        .map_err(|er| format!("Serialization failed {:?}", er))?;
+    let response = reqwest::Client::new()
+        .post("https://payments2-jaonrqeeaq-ew.a.run.app/v1/orders/timeslots")
+        .header("Content-Type", "application/json")
+        .body(json)
+        .send()
+        .await
+        .map_err(|er| format!("HTTP request failed {:?}", er))?;    
+    let timeslots_json = response.text().await
+        .map_err(|er| format!("Deserializing response failed {:?}", er))?;
+
+    Ok(RawJson(timeslots_json))
+}
+
 #[launch]
 fn rocket() -> _ {
     let allowed_origins = rocket_cors::AllowedOrigins::all();
@@ -70,6 +108,6 @@ fn rocket() -> _ {
     }.to_cors().expect("Error creating CORS fairing");
 
     rocket::build()
-        .mount("/", routes![index, test, get_vendors, get_menu])
+        .mount("/", routes![index, test, get_vendors, get_menu, get_item_timeslots])
         .attach(cors)        
 }

@@ -39,6 +39,36 @@ const handleVendorMessage = (vendors, message) => {
         }
 }
 
+const handleMenuMessage = (vendor, message) => {
+    vendor.menuItems = [];
+    const items = message["0"].items;
+    for (const key in items) {
+        if (Object.hasOwnProperty.call(items, key)) {
+            const menuItem = items[key];
+            if (menuItem.enabled === false) 
+            {
+                continue;
+            }
+                
+            if (!validateMenuItem(menuItem))
+            {
+                console.error('Invalid menu item data:', menuItem);
+                continue;
+            }
+
+            vendor.menuItems.push({
+                name: menuItem.Name,
+                description: menuItem.Description,
+                descriptionLong: menuItem.DescriptionLong,
+                imageUrl: menuItem.ImageUrl,
+                id: menuItem.key,
+                timeslots: [],
+                price: Number(menuItem.Cost) / 100,
+            });
+        }
+    }
+}
+
 const messageHandler = (vendors, e) => {
     const path = e?.d?.b?.p;
     if (path === undefined) {
@@ -204,7 +234,7 @@ const getRandomFoodIcon = () => {
  */
 const getTimes = async (id, name, vendor, quantity) => {
     let result = await fetch(
-        "https://payments2-jaonrqeeaq-ew.a.run.app/v1/orders/timeslots", 
+        "http://localhost:8000/timeslots", 
         { 
             method: "POST",
             headers: new Headers({
@@ -447,7 +477,6 @@ async function main(config = {}) {
             delete vendors[excludedVendor];
         }
 
-
         // Shuffle the vendor list based on the day of the year
         const dayOfYear = getDayOfYear(new Date());
         vendors = shuffleVendorList(vendors, dayOfYear);
@@ -457,9 +486,11 @@ async function main(config = {}) {
             if (Object.hasOwnProperty.call(vendors, vendorRoute)) {
                 const vendor = vendors[vendorRoute];
                 try {
-                    await client.submitMessage('q', { p: `/Clients/${vendor.routeName}/activeMenu/categories`, h:"" });
-                    const menu = await client.readMessage(messageTimeout/10);
-                    messageHandler(vendors, menu);
+                    // await client.submitMessage('q', { p: `/Clients/${vendor.routeName}/activeMenu/categories`, h:"" });
+                    // const menu = await client.readMessage(messageTimeout/10);
+                    //messageHandler(vendors, menu);
+                    let menu = await fetch(`http://127.0.0.1:8000/menu/${vendor.routeName}`).then(res => res.json());
+                    handleMenuMessage(vendor, menu);
                 } catch (error) {
                     console.error("Error fetching menu for vendor", vendorRoute, error);
                 }
