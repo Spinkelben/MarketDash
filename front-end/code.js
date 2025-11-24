@@ -1,5 +1,44 @@
 import { ApiClient } from "./ApiClient.js";
 
+const handleVendorMessage = (vendors, message) => {
+    for (const index in message) {
+            let location = message[index];
+            // console.log(location);
+            if (location.children !== undefined) {
+                for (const idx in location.children) {
+                    const vendor = location.children[idx];
+                    if (!validateVendor(vendor)) {
+                        console.error('Invalid vendor data:', vendor);
+                        continue;
+                    }
+
+                    vendors[vendor.routeName] = {
+                        name: vendor.name,
+                        routeName: vendor.routeName,
+                        imageUrl: vendor.imageUrl,
+                        menuItems: [],
+                        visible: vendor.visible,
+                    }
+                }
+            }
+            else {
+                const vendor = location;
+                if (!validateVendor(vendor)) {
+                    console.error('Invalid vendor data:', vendor);
+                    continue;
+                }
+
+                vendors[vendor.routeName] = {
+                    name: vendor.name,
+                    routeName: vendor.routeName,
+                    imageUrl: vendor.imageUrl,
+                    menuItems: [],
+                    visible: vendor.visible,
+                }
+            }
+        }
+}
+
 const messageHandler = (vendors, e) => {
     const path = e?.d?.b?.p;
     if (path === undefined) {
@@ -399,9 +438,10 @@ async function main(config = {}) {
             throw new Error("Client Api connection not initialized correctly");
         }
 
-        await client.submitMessage('q', { p: clientUnitsPath, h: "" });
-        const listVendorResponse = await client.readMessage(messageTimeout);
-        messageHandler(vendors, listVendorResponse);
+        // await client.submitMessage('q', { p: clientUnitsPath, h: "" });
+        // const listVendorResponse = await client.readMessage(messageTimeout);
+        let listVendorResponse = await fetch("http://127.0.0.1:8000/vendors").then(res => res.json());
+        handleVendorMessage(vendors, listVendorResponse);
 
         for (const excludedVendor of excludedVendors) {
             delete vendors[excludedVendor];
