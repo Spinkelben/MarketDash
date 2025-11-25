@@ -234,7 +234,7 @@ const getRandomFoodIcon = () => {
  */
 const getTimes = async (id, name, vendor, quantity) => {
     let result = await fetch(
-        "http://localhost:8000/timeslots", 
+        "api/timeslots", 
         { 
             method: "POST",
             headers: new Headers({
@@ -470,7 +470,7 @@ async function main(config = {}) {
 
         // await client.submitMessage('q', { p: clientUnitsPath, h: "" });
         // const listVendorResponse = await client.readMessage(messageTimeout);
-        let listVendorResponse = await fetch("http://127.0.0.1:8000/vendors").then(res => res.json());
+        let listVendorResponse = await fetch("api/vendors").then(res => res.json());
         handleVendorMessage(vendors, listVendorResponse);
 
         for (const excludedVendor of excludedVendors) {
@@ -489,7 +489,7 @@ async function main(config = {}) {
                     // await client.submitMessage('q', { p: `/Clients/${vendor.routeName}/activeMenu/categories`, h:"" });
                     // const menu = await client.readMessage(messageTimeout/10);
                     //messageHandler(vendors, menu);
-                    let menu = await fetch(`http://127.0.0.1:8000/menu/${vendor.routeName}`).then(res => res.json());
+                    let menu = await fetch(`api/menu/${vendor.routeName}`).then(res => res.json());
                     handleMenuMessage(vendor, menu);
                 } catch (error) {
                     console.error("Error fetching menu for vendor", vendorRoute, error);

@@ -1,10 +1,10 @@
-use rocket::{futures::{SinkExt, TryStreamExt}, tokio::select};
+use rocket::{futures::{SinkExt, TryStreamExt}, tokio::select, serde::{Deserialize, Serialize}};
 use serde_json::Value;
 use std::time::Duration;
 
 const SOCKET_URL : &str = "wss://s-usc1a-nss-2040.firebaseio.com/.ws?v=5&ns=pq-dev";
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "t", content = "d")]
 enum MessageWrapper {
     #[serde(rename = "c")]
@@ -13,7 +13,7 @@ enum MessageWrapper {
     Data(Data),
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "t", content = "d")]
 enum Control {
     #[serde(rename = "h")]
@@ -28,7 +28,7 @@ enum Control {
         version: String },
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct  Data {
     #[serde(rename = "r")]
     request_id : Option<u64>,
@@ -38,7 +38,7 @@ struct  Data {
     body : RequestBody,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 enum RequestAction {
     #[serde(rename = "q")]
     Query,
@@ -46,7 +46,7 @@ enum RequestAction {
     Data,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 struct RequestBody {
     #[serde(rename = "p", skip_serializing_if = "Option::is_none")]
     path : Option<String>,
@@ -58,7 +58,7 @@ struct RequestBody {
     data: Option<Value>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 enum RequestStatus {
     #[serde(rename = "ok")]
     Ok,
@@ -70,6 +70,7 @@ pub struct PubqClient {
     socket_url: String,
     next_id: u64,
     stream: Option<tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>>,
+    is_connected: bool,
 }
 
 impl PubqClient {
@@ -78,16 +79,23 @@ impl PubqClient {
             socket_url: SOCKET_URL.to_string(),
             next_id: 1,
             stream: None,
+            is_connected: false,
         }
     }
 
     pub async fn connect(&mut self, timeout : Duration) -> Result<(), Box<dyn std::error::Error>> {
+        if self.is_connected {    
+            return Ok(());
+        }
+
         let (ws_stream, _) = tokio_tungstenite::connect_async(&self.socket_url).await?;
         self.stream = Some(ws_stream);
+        self.next_id = 1;
         let header = self.receive_message(timeout).await?;
         let header = serde_json::from_str::<MessageWrapper>(&header)?;
         match header {
             MessageWrapper::Control(_) => {
+                self.is_connected = true;
                 return Ok(());
             },
             _ => {
@@ -99,15 +107,26 @@ impl PubqClient {
     async fn receive_message(&mut self, timeout : Duration) -> Result<String, Box<dyn std::error::Error>> {
         if let Some(stream) = &mut self.stream {
             select! {
-                _ = tokio::time::sleep(timeout) => {
+                _ = tokio::spawn(async move { tokio::time::sleep(timeout).await }) => {
                     println!("Timeout reached while waiting for messages.");
                 },
                 msg = stream.try_next() =>  {
-                    let msg = match msg? {
-                        Some(m) => m,
-                        None => return Err("WebSocket closed".into()),
+                    let msg = match msg {
+                        Ok(Some(m)) => m,
+                        Ok(None) => {
+                            // Stream closed (EOF). Clean up state and return an error so callers know.
+                            self.is_connected = false;
+                            // Drop the stream by taking it out of the option to avoid holding a mutable borrow.
+                            self.stream = None;
+                            return Err("WebSocket closed (EOF)".into());
+                        }
+                        Err(e) => {
+                            // On underlying error, mark disconnected and drop stream.
+                            self.is_connected = false;
+                            self.stream = None;
+                            return Err(Box::new(e));
+                        }
                     };
-
                     if msg.is_text() {
                         let text = msg.into_text()?;
                         return Ok(text.to_string());
@@ -130,7 +149,14 @@ impl PubqClient {
                 }
             });
             let request_text = serde_json::to_string(&request)?;
-            stream.send(tokio_tungstenite::tungstenite::Message::Text(request_text.into())).await?;
+            match stream.send(tokio_tungstenite::tungstenite::Message::Text(request_text.into())).await {
+                Err(_) => {
+                    // Treat as disconnected (send failed). Clean up stream and return error.
+                    self.is_connected = false;
+                    self.stream = None;
+                },
+                Ok(()) => {}
+            }
             self.next_id += 1;
             let response_text = self.receive_message(timeout).await?;
             let response = serde_json::from_str::<MessageWrapper>(&response_text)?;
@@ -172,7 +198,15 @@ impl PubqClient {
                 }
             });
             let request_text = serde_json::to_string(&request)?;
-            stream.send(tokio_tungstenite::tungstenite::Message::Text(request_text.into())).await?;
+            match stream.send(tokio_tungstenite::tungstenite::Message::Text(request_text.into())).await {
+                Err(_) => {
+                    // Treat as disconnected (send failed). Clean up stream and return error.
+                    self.is_connected = false;
+                    self.stream = None;
+                },
+                Ok(()) => {}  
+            };
+            
             self.next_id += 1;
             let response_text = self.receive_message(timeout).await?;
             let response = serde_json::from_str::<MessageWrapper>(&response_text)?;
@@ -200,15 +234,15 @@ impl PubqClient {
 
         Err("Connection failure".into())
     }
+
 }
 
 impl Drop for PubqClient {
     fn drop(&mut self) {
         println!("Dropping PubqClient and closing connection.");
-        if let Some(stream) = &mut self.stream {
-            let _ = stream.close(None);
-            self.stream = None;
-            self.next_id = 1;
+        if let Some(mut s) = self.stream.take()
+        {
+            _ = s.close(None);
         }
     }
 }
