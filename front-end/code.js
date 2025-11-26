@@ -460,16 +460,6 @@ async function main(config = {}) {
     spinner.style.display = 'block';
     
     try {
-        const client = new ApiClient();
-        await client.start();
-        
-        const firstMessage = await client.readMessage(messageTimeout);
-        if (firstMessage === null) {
-            throw new Error("Client Api connection not initialized correctly");
-        }
-
-        // await client.submitMessage('q', { p: clientUnitsPath, h: "" });
-        // const listVendorResponse = await client.readMessage(messageTimeout);
         let listVendorResponse = await fetch("api/vendors").then(res => res.json());
         handleVendorMessage(vendors, listVendorResponse);
 
@@ -486,9 +476,6 @@ async function main(config = {}) {
             if (Object.hasOwnProperty.call(vendors, vendorRoute)) {
                 const vendor = vendors[vendorRoute];
                 try {
-                    // await client.submitMessage('q', { p: `/Clients/${vendor.routeName}/activeMenu/categories`, h:"" });
-                    // const menu = await client.readMessage(messageTimeout/10);
-                    //messageHandler(vendors, menu);
                     let menu = await fetch(`api/menu/${vendor.routeName}`).then(res => res.json());
                     handleMenuMessage(vendor, menu);
                 } catch (error) {
