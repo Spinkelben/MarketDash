@@ -38,8 +38,19 @@ async fn test(mut shutdown: Shutdown, client : &State<Mutex<PubqClient>>) -> Res
     }
 }
 
+struct VendorCache(Instant, String);
+
 #[get("/vendors")]
-async fn get_vendors(client : &State<Mutex<PubqClient>>) -> Result<RawJson<String>, String> {
+async fn get_vendors(client : &State<Mutex<PubqClient>>, cache: &State<Mutex<Option<VendorCache>>>) -> Result<RawJson<String>, String> {
+    {
+        let cache = &cache.lock().await;
+        if let Some(vendor_cache) = cache.as_ref() {
+            if vendor_cache.0.elapsed() < Duration::from_secs(300) {
+                return Ok(RawJson(vendor_cache.1.clone()));
+            }
+        }
+    }
+
     let mut client = client.lock().await;
     client.connect(Duration::from_secs(5)).await.map_err(|er| format!("Connection failed {:?}", er))?;
 
@@ -59,6 +70,8 @@ async fn get_vendors(client : &State<Mutex<PubqClient>>) -> Result<RawJson<Strin
 
     let vendors_json = serde_json::to_string(&vendors)
         .map_err(|er| format!("Serialization failed {:?}", er))?;
+    let cache = &mut cache.lock().await;
+    **cache = Some(VendorCache(Instant::now(), vendors_json.clone()));
     Ok(RawJson(vendors_json))
 }
 
@@ -173,5 +186,6 @@ fn rocket() -> _ {
         .manage(Mutex::new(PubqClient::new()))
         .manage(Mutex::new(VenderMenuCache(HashMap::new())))
         .manage(Mutex::new(TimeSlotCache(HashMap::new())))
+        .manage(Mutex::new(Option::None::<VendorCache>))
         .attach(cors)        
 }
