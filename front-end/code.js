@@ -8,10 +8,9 @@ const checkGithubReferrer = () => {
         const banner = document.getElementById('github-banner');
         if (banner) {
             banner.style.display = 'flex';
+            // set local storage flag to avoid showing again
+            localStorage.setItem('githubRedirectSeen', 'true');
         }
-
-        // set local storage flag to avoid showing again
-        localStorage.setItem('githubRedirectSeen', 'true');
     }
 };
 
