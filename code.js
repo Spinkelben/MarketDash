@@ -710,14 +710,12 @@ const setupRandomDishSelector = (vendors, allTimes) => {
             }
         });
 
-        // Get today's timeslots for this specific dish
-        const today = new Date().toLocaleDateString('da-dk', { weekday: 'long' });
-
-        let todaysTimeslots = allTimes.filter(t => 
-            t.label === today && 
-            t.vendor === selectedDish.vendor.routeName && 
-            t.id === selectedDish.dish.id
-        );
+        // Get timeslots for the selected dish and vendor for TODAY
+        let todaysTimeslots = allTimes.filter(t => {
+            return t.label === "TODAY" &&
+                   t.vendor === selectedDish.vendor.routeName &&
+                   t.id === selectedDish.dish.id;
+        });
 
         // Clear previous timeslots
         resultTimeslotsList.innerHTML = '';
@@ -783,9 +781,8 @@ const setupRandomDishSelector = (vendors, allTimes) => {
         document.querySelector('.spinning-dish-name').textContent = 'Loading delicious options...';
         spinButton.textContent = 'Preparing images...';
         
-        // Preload a subset of images (first 20) for faster startup
-        const imagesToPreload = allDishes.slice(0, Math.min(20, allDishes.length));
-        await preloadImages(imagesToPreload);
+    // Preload all vendor and dish images before spinning
+    await preloadImages(allDishes);
         
         spinButton.textContent = 'Finding something delicious...';
         document.querySelector('.spinning-dish-name').textContent = 'Looking for the perfect dish...';
