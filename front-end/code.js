@@ -4,14 +4,14 @@ import { ApiClient } from "./ApiClient.js";
 const checkGithubReferrer = () => {
     const referrer = document.referrer;
     console.log("Referrer:", referrer);
-    if (referrer && (referrer.includes('https://spinkelben.github.io'))) {
+    if (referrer && (referrer.includes('https://spinkelben.github.io')) && localStorage.getItem('githubRedirectSeen') !== 'true') {
         const banner = document.getElementById('github-banner');
         if (banner) {
             banner.style.display = 'flex';
         }
 
-        // Clear referrer to avoid showing banner again
-        history.replaceState({}, document.title, window.location.pathname);        
+        // set local storage flag to avoid showing again
+        localStorage.setItem('githubRedirectSeen', 'true');
     }
 };
 
