@@ -12,17 +12,23 @@
         <meta name="description" content="Discover meals at The Market in Danske Bank HQ. View menus and time slots easily." />
     </head>
     <body>
-        <div id="github-banner" class="github-banner" style="display: none;">
-            <span>You were redirected from Github.io</span>
-            <button class="banner-close" onclick="document.getElementById('github-banner').style.display = 'none';">&times;</button>
-        </div>
         <main>
+            <div id="github-banner" class="github-banner" style="display: none;">
+                <div>
+                    <span>The food dashboard has moved!</span>
+                    <p>Don't worry, you have already be redirected to the new home of the Food Dashboard: <a href="https://food.homelab.soren.ranneries.com">https://food.homelab.soren.ranneries.com</a>. 
+                        Please update your bookmarks, if you have the page bookmarked. Otherwise you could take opportunity to bookmark the page now 😁 Hit <strong>Ctrl+D</strong>.
+                        The reason for the move is purely technical, don't worry the site will function the same as before!
+                    </p>
+                </div>
+                <button class="banner-close" onclick="document.getElementById('github-banner').style.display = 'none';">&times;</button>
+            </div>
             <header>
                 <h1>Food Dashboard</h1>
-                <div class="header-controls">
-                    <select id="day-selector" style="display: none;"></select>
+                <div class="header-controls" style="display: none;">
+                    <select id="day-selector" ></select>
+                    <button id="random-dish-btn" class="random-dish-btn">🎲 Can't decide? Let me help you choose!</button>
                 </div>
-                <button id="random-dish-btn" class="random-dish-btn">🎲 Can't decide? Let me help you choose!</button>
             </header>
             <div id="food-table">
                 <div id="load-icon" class="spinner big">🌭</div>

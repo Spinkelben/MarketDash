@@ -3,19 +3,24 @@ import { ApiClient } from "./ApiClient.js";
 // Check if visitor was redirected from Github.io
 const checkGithubReferrer = () => {
     const referrer = document.referrer;
-    if (referrer && referrer.includes('https://spinkelben.github.io')) {
+    console.log("Referrer:", referrer);
+    if (referrer && (referrer.includes('https://spinkelben.github.io'))) {
         const banner = document.getElementById('github-banner');
         if (banner) {
             banner.style.display = 'flex';
         }
 
         // Clear referrer to avoid showing banner again
-        document.referrer = '';
+        history.replaceState({}, document.title, window.location.pathname);        
     }
 };
 
-// Run check when page loads
-document.addEventListener('DOMContentLoaded', checkGithubReferrer);
+if (document.readyState !== 'loading') { 
+    checkGithubReferrer();
+}
+else {
+    document.addEventListener('DOMContentLoaded', checkGithubReferrer);
+}
 
 const handleVendorMessage = (vendors, message) => {
     for (const index in message) {
@@ -344,7 +349,6 @@ const setupTimeslotSelector = (allTimes, dayLabels) => {
         }
     }
     displayTimes(allTimes, optionPicker.value);
-    optionPicker.style.display = "";
 };
 
 
@@ -523,7 +527,9 @@ async function main(config = {}) {
 
             document.body.appendChild(godModeButton);
         }
-
+        
+        // Show the day selector and random dish button now that data is loaded
+        document.querySelector(".header-controls").style.display = "flex";
 
         return { success: true, vendors, allTimes };
     } catch (error) {

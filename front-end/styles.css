@@ -312,6 +312,7 @@ main {
     justify-content: center;
     gap: 1em;
     margin-bottom: 1em;
+    flex-direction: column;
 }
 
 .random-dish-btn {
