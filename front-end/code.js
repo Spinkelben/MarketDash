@@ -3,11 +3,14 @@ import { ApiClient } from "./ApiClient.js";
 // Check if visitor was redirected from Github.io
 const checkGithubReferrer = () => {
     const referrer = document.referrer;
-    if (referrer && referrer.includes('github.io')) {
+    if (referrer && referrer.includes('https://spinkelben.github.io')) {
         const banner = document.getElementById('github-banner');
         if (banner) {
             banner.style.display = 'flex';
         }
+
+        // Clear referrer to avoid showing banner again
+        document.referrer = '';
     }
 };
 
