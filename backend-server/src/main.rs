@@ -171,6 +171,11 @@ async fn get_item_timeslots(body : Json<TimeslotRequest>, timeslot_cache : &Stat
     Ok(RawJson(timeslots_json))
 }
 
+#[get("/health")]
+fn health() -> &'static str {
+    "OK"
+}
+
 #[launch]
 fn rocket() -> _ {
     let allowed_origins = rocket_cors::AllowedOrigins::all();
@@ -181,7 +186,7 @@ fn rocket() -> _ {
     }.to_cors().expect("Error creating CORS fairing");
 
     rocket::build()
-        .mount("/api", routes![index, test, get_vendors, get_menu, get_item_timeslots])
+        .mount("/api", routes![index, test, get_vendors, get_menu, get_item_timeslots, health])
         .mount("/", FileServer::from("../front-end"))
         .manage(Mutex::new(PubqClient::new()))
         .manage(Mutex::new(VenderMenuCache(HashMap::new())))
