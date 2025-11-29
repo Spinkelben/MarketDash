@@ -1,6 +1,6 @@
 use rocket::State;
 use rocket::futures::lock::Mutex;
-use rocket::{Shutdown, response::content::RawJson, tokio::select};
+use rocket::response::content::RawJson;
 use rocket::serde::{json::Json, Deserialize, Serialize};
 use rocket::tokio::time::{Instant, Duration};
 use rocket::fs::FileServer;
@@ -10,33 +10,6 @@ use crate::pubq_client::PubqClient;
 mod pubq_client;
 
 #[macro_use] extern crate rocket;
-
-#[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
-}
-
-#[get("/test")]
-async fn test(mut shutdown: Shutdown, client : &State<Mutex<PubqClient>>) -> Result<String, String> {
-    let mut client = client.lock().await;
-    select! {
-        _ =  tokio::spawn(async move { tokio::time::sleep(Duration::from_secs(10)).await }) => {
-            return Err("Timeout reached before connection".into());
-        },
-        _ = &mut shutdown => {
-            return Err("Shutdown signal received before connection".into());
-        },
-        res = client.connect(Duration::from_secs(5)) => {
-            println!("Connection attempt finished.");
-            println!("{:#?}", res);
-            if let Err(er) = res {
-                return Err(format!("Connection failed {:?}", er));
-            }
-
-            return Ok("Connected successfully".into());
-        },
-    }
-}
 
 struct VendorCache(Instant, String);
 
@@ -186,7 +159,7 @@ fn rocket() -> _ {
     }.to_cors().expect("Error creating CORS fairing");
 
     rocket::build()
-        .mount("/api", routes![index, test, get_vendors, get_menu, get_item_timeslots, health])
+        .mount("/api", routes![get_vendors, get_menu, get_item_timeslots, health])
         .mount("/", FileServer::from("../front-end"))
         .manage(Mutex::new(PubqClient::new()))
         .manage(Mutex::new(VenderMenuCache(HashMap::new())))
