@@ -1,5 +1,19 @@
 import { ApiClient } from "./ApiClient.js";
 
+// Check if visitor was redirected from Github.io
+const checkGithubReferrer = () => {
+    const referrer = document.referrer;
+    if (referrer && referrer.includes('github.io')) {
+        const banner = document.getElementById('github-banner');
+        if (banner) {
+            banner.style.display = 'flex';
+        }
+    }
+};
+
+// Run check when page loads
+document.addEventListener('DOMContentLoaded', checkGithubReferrer);
+
 const handleVendorMessage = (vendors, message) => {
     for (const index in message) {
             let location = message[index];
