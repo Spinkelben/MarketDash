@@ -24,12 +24,16 @@ else {
 const handleVendorMessage = (vendors, message) => {
     for (const index in message) {
             let location = message[index];
-            // console.log(location);
             if (location.children !== undefined) {
                 for (const idx in location.children) {
                     const vendor = location.children[idx];
                     if (!validateVendor(vendor)) {
                         console.error('Invalid vendor data:', vendor);
+                        continue;
+                    }
+
+                    if (vendor.enabled === false) {
+                        console.log('Skipping disabled vendor:', vendor.routeName);
                         continue;
                     }
 
@@ -49,6 +53,11 @@ const handleVendorMessage = (vendors, message) => {
                     continue;
                 }
 
+                if (vendor.enabled === false) {
+                    console.log('Skipping disabled vendor:', vendor.routeName);
+                    continue;
+                }
+                
                 vendors[vendor.routeName] = {
                     name: vendor.name,
                     routeName: vendor.routeName,

@@ -14,7 +14,7 @@ reqwest = "0.12.24"
 opentelemetry_sdk =  {version = "0.31.0", features = ["logs"] }
 opentelemetry-stdout = {version="0.31.0", features = ["logs"] }
 opentelemetry-appender-tracing = "0.31.1"
-tracing = {version = "0.1.44", features = ["std"] }
+tracing = {version = "0.1.44", features = ["std", "attributes"] }
 tracing-subscriber = {version="0.3.22", features = ["env-filter", "registry", "std", "fmt"] }
 opentelemetry = "0.31.0"
 opentelemetry-otlp = {version="0.31.0", features=["logs"] }

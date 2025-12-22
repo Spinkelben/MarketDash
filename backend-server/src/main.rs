@@ -10,7 +10,7 @@ use opentelemetry_otlp::{Protocol, WithExportConfig};
 use opentelemetry_appender_tracing::layer;
 use opentelemetry_sdk::logs::SdkLoggerProvider;
 use opentelemetry_sdk::Resource;
-use tracing::{error, info};
+use tracing::{error, info, instrument};
 use tracing_subscriber:: {prelude::*, EnvFilter};
 
 use crate::pubq_client::PubqClient;
@@ -21,6 +21,7 @@ mod pubq_client;
 struct VendorCache(Instant, String);
 
 #[get("/vendors")]
+#[instrument]
 async fn get_vendors(client : &State<Mutex<PubqClient>>, cache: &State<Mutex<Option<VendorCache>>>) -> Result<RawJson<String>, String> {
     {
         let cache = &cache.lock().await;
@@ -62,6 +63,7 @@ async fn get_vendors(client : &State<Mutex<PubqClient>>, cache: &State<Mutex<Opt
 struct VenderMenuCache(HashMap<String, (Instant, serde_json::Value)>);
 
 #[get("/menu/<vendor_id>")]
+#[instrument]
 async fn get_menu(vendor_id: &str, client : &State<Mutex<PubqClient>>, vendor_cache : &State<Mutex<VenderMenuCache>>) -> Result<RawJson<String>, String> {
     let cache = &mut vendor_cache.lock().await.0;
     if let Some((timestamp, cached_menu)) = cache.get(vendor_id) {
@@ -129,6 +131,7 @@ struct TimeslotProduct {
 struct TimeSlotCache(HashMap<String, (Instant, String)>);
 
 #[post("/timeslots", data = "<body>")]
+#[instrument(skip(body))]
 async fn get_item_timeslots(body : Json<TimeslotRequest>, timeslot_cache : &State<Mutex<TimeSlotCache>>) -> Result<RawJson<String>, String> {
     let cache_key = format!(
         "{}-{}",
@@ -167,6 +170,7 @@ async fn get_item_timeslots(body : Json<TimeslotRequest>, timeslot_cache : &Stat
 }
 
 #[get("/health")]
+#[instrument]
 fn health() -> &'static str {
     "OK"
 }
@@ -204,6 +208,7 @@ fn setup_telemetry(otel_endpoint: &str) {
     let otel_layer  = layer::OpenTelemetryTracingBridge::new(&provider)
         .with_filter(filter);
 
+    // This causes output to the console
     let filter_fmt = EnvFilter::new("info")
         .add_directive("opentelemetry=info".parse().unwrap())
         .add_directive("rocket=warn".parse().unwrap());
