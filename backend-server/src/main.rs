@@ -5,6 +5,13 @@ use rocket::serde::{json::Json, Deserialize, Serialize};
 use rocket::tokio::time::{Instant, Duration};
 use rocket::fs::FileServer;
 use std::collections::HashMap;
+// Tracing and logging
+use opentelemetry_otlp::{Protocol, WithExportConfig};
+use opentelemetry_appender_tracing::layer;
+use opentelemetry_sdk::logs::SdkLoggerProvider;
+use opentelemetry_sdk::Resource;
+use tracing::{error, info};
+use tracing_subscriber:: {prelude::*, EnvFilter};
 
 use crate::pubq_client::PubqClient;
 mod pubq_client;
@@ -24,6 +31,7 @@ async fn get_vendors(client : &State<Mutex<PubqClient>>, cache: &State<Mutex<Opt
         }
     }
 
+    info!("Fetching vendors from PubQ");
     let mut client = client.lock().await;
     client.connect(Duration::from_secs(5)).await.map_err(|er| format!("Connection failed {:?}", er))?;
 
@@ -35,14 +43,17 @@ async fn get_vendors(client : &State<Mutex<PubqClient>>, cache: &State<Mutex<Opt
             Ok(v) => break v,
             Err(e) if attempts >= 3 => return Err(format!("Get vendors failed after {} attempts: {:?}", attempts, e)),
             Err(_) => {
-                println!("Get vendors attempt {} failed, retrying...", attempts);
+                warn!("Get vendors attempt {} failed, retrying...", attempts);
                 client.connect(Duration::from_secs(5)).await.map_err(|er| format!("Re-connection failed {:?}", er))?;
             }
         }
     };
 
     let vendors_json = serde_json::to_string(&vendors)
-        .map_err(|er| format!("Serialization failed {:?}", er))?;
+        .map_err(|er| { 
+            error!("Failed to serialize vendors: {:?}", er);
+            format!("Serialization failed {:?}", er) 
+    })?;
     let cache = &mut cache.lock().await;
     **cache = Some(VendorCache(Instant::now(), vendors_json.clone()));
     Ok(RawJson(vendors_json))
@@ -57,11 +68,15 @@ async fn get_menu(vendor_id: &str, client : &State<Mutex<PubqClient>>, vendor_ca
 
         if timestamp.elapsed() < Duration::from_secs(300) {
             let menu_json = serde_json::to_string(cached_menu)
-                .map_err(|er| format!("Serialization failed {:?}", er))?;
+                .map_err(|er| {
+                    error!("Failed to serialize cached menu: {:?}", er);
+                    format!("Serialization failed {:?}", er) 
+                })?;
             return Ok(RawJson(menu_json));
         }
     }
 
+    info!("Fetching menu for vendor {} from PubQ", vendor_id);
     let mut client = client.lock().await;
     client.connect(Duration::from_secs(5)).await.map_err(|er| format!("Connection failed {:?}", er))?;
 
@@ -72,18 +87,24 @@ async fn get_menu(vendor_id: &str, client : &State<Mutex<PubqClient>>, vendor_ca
             .map_err(|er| format!("Get menu failed {:?}", er)) {
             Ok(menu) => break menu,
             Err(e) if attempts < 3 => {
-                println!("Get menu failed: {:?}, retrying...", e);
+                warn!("Get menu failed: {:?}, retrying...", e);
                 client.connect(Duration::from_secs(5)).await
                     .map_err(|er| format!("Re-connection failed {:?}", er))?;
             },
-            Err(e) => return Err(format!("Get menu failed after {} attempts: {:?}", attempts, e)),
+            Err(e) => { 
+                error!("Get menu failed after {} attempts: {:?}", attempts, e);
+                return Err(format!("Get menu failed after {} attempts: {:?}", attempts, e))
+            },
         }    
     };
 
     cache.insert(vendor_id.to_string(), (Instant::now(), menu.clone()));
 
     let menu_json = serde_json::to_string(&menu)
-        .map_err(|er| format!("Serialization failed {:?}", er))?;
+        .map_err(|er| {
+            error!("Failed to serialize menu: {:?}", er);
+            format!("Serialization failed {:?}", er) 
+        })?;
     Ok(RawJson(menu_json))
 }
 
@@ -126,6 +147,7 @@ async fn get_item_timeslots(body : Json<TimeslotRequest>, timeslot_cache : &Stat
         }
     }
     
+    info!("Fetching timeslots for key {} from external service", cache_key);
     let request = body.into_inner();
     let json = serde_json::to_string(&request)
         .map_err(|er| format!("Serialization failed {:?}", er))?;
@@ -149,15 +171,59 @@ fn health() -> &'static str {
     "OK"
 }
 
-#[launch]
-fn rocket() -> _ {
+fn setup_cors() -> rocket_cors::Cors {
     let allowed_origins = rocket_cors::AllowedOrigins::all();
     let cors = rocket_cors::CorsOptions {
         allowed_origins,
         allow_credentials: true,
         ..Default::default()
     }.to_cors().expect("Error creating CORS fairing");
+    cors
+}
 
+fn setup_telemetry(otel_endpoint: &str) {
+    let otel_exporter = opentelemetry_otlp::LogExporter::builder()
+        .with_http()
+        .with_protocol(Protocol::HttpBinary)
+        .with_endpoint(otel_endpoint)
+        .build()
+        .expect("Failed to create OTLP Log Exporter");
+
+    let provider : SdkLoggerProvider = SdkLoggerProvider::builder()
+        .with_resource(
+            Resource::builder()
+                .with_service_name("market-food-dashboard-backend")
+                .build(),
+        )
+        .with_batch_exporter(otel_exporter)
+        .build();
+
+    // TODO: Remove logs fomr select components
+    let filter = EnvFilter::new("info")
+        .add_directive("rocket=warn".parse().unwrap());
+    let otel_layer  = layer::OpenTelemetryTracingBridge::new(&provider)
+        .with_filter(filter);
+
+    let filter_fmt = EnvFilter::new("info")
+        .add_directive("opentelemetry=info".parse().unwrap())
+        .add_directive("rocket=warn".parse().unwrap());
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_thread_names(true)
+        .with_filter(filter_fmt);
+
+    tracing_subscriber::registry()
+        .with(otel_layer)
+        .with(fmt_layer)
+        .init();
+}
+
+#[launch]
+fn rocket() -> _ {
+    let figment = rocket::Config::figment();
+    let otel_endpoint: String = figment.extract_inner("otel_endpoint").expect("Missing 'otel_endpoint' configuration in Rocket.toml");
+    setup_telemetry(&otel_endpoint);
+    
+    let cors = setup_cors();
     rocket::build()
         .mount("/api", routes![get_vendors, get_menu, get_item_timeslots, health])
         .mount("/", FileServer::from("../front-end"))

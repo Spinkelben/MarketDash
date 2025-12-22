@@ -1,5 +1,6 @@
 use rocket::{futures::{SinkExt, TryStreamExt}, tokio::select, serde::{Deserialize, Serialize}};
 use serde_json::Value;
+use tracing::info;
 use std::time::Duration;
 
 const SOCKET_URL : &str = "wss://s-usc1a-nss-2040.firebaseio.com/.ws?v=5&ns=pq-dev";
@@ -99,7 +100,9 @@ impl PubqClient {
                 return Ok(());
             },
             _ => {
-                return Err("Expected control header message".into());
+                let error = "Expected control header message";
+                error!("{}", error);
+                return Err(error.into());
             }
         }
     }
@@ -108,7 +111,7 @@ impl PubqClient {
         if let Some(stream) = &mut self.stream {
             select! {
                 _ = tokio::spawn(async move { tokio::time::sleep(timeout).await }) => {
-                    println!("Timeout reached while waiting for messages.");
+                    warn!("Timeout reached while waiting for messages.");
                 },
                 msg = stream.try_next() =>  {
                     let msg = match msg {
@@ -118,12 +121,14 @@ impl PubqClient {
                             self.is_connected = false;
                             // Drop the stream by taking it out of the option to avoid holding a mutable borrow.
                             self.stream = None;
+                            info!("WebSocket connection closed by server.");
                             return Err("WebSocket closed (EOF)".into());
                         }
                         Err(e) => {
                             // On underlying error, mark disconnected and drop stream.
                             self.is_connected = false;
                             self.stream = None;
+                            error!("Error receiving message: {:?}", e);
                             return Err(Box::new(e));
                         }
                     };
@@ -134,6 +139,7 @@ impl PubqClient {
                 }
             }
         }
+        warn!("No message received within timeout.");
         Err("No message received".into())
     }
 
@@ -150,10 +156,11 @@ impl PubqClient {
             });
             let request_text = serde_json::to_string(&request)?;
             match stream.send(tokio_tungstenite::tungstenite::Message::Text(request_text.into())).await {
-                Err(_) => {
+                Err(e) => {
                     // Treat as disconnected (send failed). Clean up stream and return error.
                     self.is_connected = false;
                     self.stream = None;
+                    error!("Failed to send get_vendors request {}", e);
                 },
                 Ok(()) => {}
             }
@@ -172,16 +179,23 @@ impl PubqClient {
                                     vendors_opt = data.body.data;
                                 }
                             },
-                            _ => return Err("Expected data message".into()),
+                            m => {
+                                error!("Expected data response: {:?}", m);
+                                return Err("Expected data message".into())
+                            },
                         }
                     }
                 },
-                _ => return Err("Expected data message".into()),
+                e => { 
+                    error!("Expected data status message, got this instead: {:?}", e);
+                    return Err("Expected data message".into()) 
+                },
             }
 
             return vendors_opt.ok_or("No vendors data found".into());
         }
 
+        error!("Failed to get vendors: not connected");
         Err("Failed to get vendors".into())
     }
 
@@ -203,6 +217,7 @@ impl PubqClient {
                     // Treat as disconnected (send failed). Clean up stream and return error.
                     self.is_connected = false;
                     self.stream = None;
+                    error!("Failed to send get_vender_menu request");
                 },
                 Ok(()) => {}  
             };
@@ -222,16 +237,23 @@ impl PubqClient {
                                     menu_opt = data.body.data;
                                 }
                             },
-                            _ => return Err("Expected data message".into()),
+                            m => { 
+                                error!("Expected data response : {:?}", m);
+                                return Err("Expected data message".into()) 
+                            },
                         }
                     }
                 },
-                _ => return Err("Expected data message".into()),
+                m => { 
+                    error!("Expected data status message, got this instead: {:?}", m);
+                    return Err("Expected data message".into()) 
+                },
             }
 
             return menu_opt.ok_or("No menu data found".into());
         }
 
+        error!("Connection failure when getting vendor menu");
         Err("Connection failure".into())
     }
 
@@ -239,7 +261,7 @@ impl PubqClient {
 
 impl Drop for PubqClient {
     fn drop(&mut self) {
-        println!("Dropping PubqClient and closing connection.");
+        info!("Dropping PubqClient and closing connection.");
         if let Some(mut s) = self.stream.take()
         {
             _ = s.close(None);
