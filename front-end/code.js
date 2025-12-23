@@ -1,5 +1,110 @@
 import { ApiClient } from "./ApiClient.js";
 
+// Check if visitor was redirected from Github.io
+const checkGithubReferrer = () => {
+    const referrer = document.referrer;
+    console.log("Referrer:", referrer);
+    if (referrer && referrer.includes('https://spinkelben.github.io') && localStorage.getItem('githubRedirectSeen') !== 'true') {
+        const banner = document.getElementById('github-banner');
+        if (banner) {
+            banner.style.display = 'flex';
+            // Configure close button
+            const closeButton = banner.querySelector('.banner-close');
+            closeButton.addEventListener('click', () => {
+                banner.style.display = 'none';
+                // set local storage flag to avoid showing again
+                localStorage.setItem('githubRedirectSeen', 'true');
+            });
+
+        }
+    }
+};
+
+if (document.readyState !== 'loading') { 
+    checkGithubReferrer();
+}
+else {
+    document.addEventListener('DOMContentLoaded', checkGithubReferrer);
+}
+
+const handleVendorMessage = (vendors, message) => {
+    for (const index in message) {
+            let location = message[index];
+            if (location.children !== undefined) {
+                for (const idx in location.children) {
+                    const vendor = location.children[idx];
+                    if (!validateVendor(vendor)) {
+                        console.error('Invalid vendor data:', vendor);
+                        continue;
+                    }
+
+                    if (vendor.enabled === false) {
+                        console.log('Skipping disabled vendor:', vendor.routeName);
+                        continue;
+                    }
+
+                    vendors[vendor.routeName] = {
+                        name: vendor.name,
+                        routeName: vendor.routeName,
+                        imageUrl: vendor.imageUrl,
+                        menuItems: [],
+                        visible: vendor.visible,
+                    }
+                }
+            }
+            else {
+                const vendor = location;
+                if (!validateVendor(vendor)) {
+                    console.error('Invalid vendor data:', vendor);
+                    continue;
+                }
+
+                if (vendor.enabled === false) {
+                    console.log('Skipping disabled vendor:', vendor.routeName);
+                    continue;
+                }
+                
+                vendors[vendor.routeName] = {
+                    name: vendor.name,
+                    routeName: vendor.routeName,
+                    imageUrl: vendor.imageUrl,
+                    menuItems: [],
+                    visible: vendor.visible,
+                }
+            }
+        }
+}
+
+const handleMenuMessage = (vendor, message) => {
+    vendor.menuItems = [];
+    const items = message["0"].items;
+    for (const key in items) {
+        if (Object.hasOwnProperty.call(items, key)) {
+            const menuItem = items[key];
+            if (menuItem.enabled === false) 
+            {
+                continue;
+            }
+                
+            if (!validateMenuItem(menuItem))
+            {
+                console.error('Invalid menu item data:', menuItem);
+                continue;
+            }
+
+            vendor.menuItems.push({
+                name: menuItem.Name,
+                description: menuItem.Description,
+                descriptionLong: menuItem.DescriptionLong,
+                imageUrl: menuItem.ImageUrl,
+                id: menuItem.key,
+                timeslots: [],
+                price: Number(menuItem.Cost) / 100,
+            });
+        }
+    }
+}
+
 const messageHandler = (vendors, e) => {
     const path = e?.d?.b?.p;
     if (path === undefined) {
@@ -165,7 +270,7 @@ const getRandomFoodIcon = () => {
  */
 const getTimes = async (id, name, vendor, quantity) => {
     let result = await fetch(
-        "https://payments2-jaonrqeeaq-ew.a.run.app/v1/orders/timeslots", 
+        "api/timeslots", 
         { 
             method: "POST",
             headers: new Headers({
@@ -258,7 +363,6 @@ const setupTimeslotSelector = (allTimes, dayLabels) => {
         }
     }
     displayTimes(allTimes, optionPicker.value);
-    optionPicker.style.display = "";
 };
 
 
@@ -391,22 +495,12 @@ async function main(config = {}) {
     spinner.style.display = 'block';
     
     try {
-        const client = new ApiClient();
-        await client.start();
-        
-        const firstMessage = await client.readMessage(messageTimeout);
-        if (firstMessage === null) {
-            throw new Error("Client Api connection not initialized correctly");
-        }
-
-        await client.submitMessage('q', { p: clientUnitsPath, h: "" });
-        const listVendorResponse = await client.readMessage(messageTimeout);
-        messageHandler(vendors, listVendorResponse);
+        let listVendorResponse = await fetch("api/vendors").then(res => res.json());
+        handleVendorMessage(vendors, listVendorResponse);
 
         for (const excludedVendor of excludedVendors) {
             delete vendors[excludedVendor];
         }
-
 
         // Shuffle the vendor list based on the day of the year
         const dayOfYear = getDayOfYear(new Date());
@@ -417,9 +511,8 @@ async function main(config = {}) {
             if (Object.hasOwnProperty.call(vendors, vendorRoute)) {
                 const vendor = vendors[vendorRoute];
                 try {
-                    await client.submitMessage('q', { p: `/Clients/${vendor.routeName}/activeMenu/categories`, h:"" });
-                    const menu = await client.readMessage(messageTimeout/10);
-                    messageHandler(vendors, menu);
+                    let menu = await fetch(`api/menu/${vendor.routeName}`).then(res => res.json());
+                    handleMenuMessage(vendor, menu);
                 } catch (error) {
                     console.error("Error fetching menu for vendor", vendorRoute, error);
                 }
@@ -448,7 +541,9 @@ async function main(config = {}) {
 
             document.body.appendChild(godModeButton);
         }
-
+        
+        // Show the day selector and random dish button now that data is loaded
+        document.querySelector(".header-controls").style.display = "flex";
 
         return { success: true, vendors, allTimes };
     } catch (error) {

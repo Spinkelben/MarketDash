@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Market Food Dashboard</title>
+        <link rel="stylesheet" href="styles.css">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script defer data-domain="food.homelab.soren.ranneries.com" src="https://analytics.homelab.soren.ranneries.com/js/script.outbound-links.js"></script>
+        <script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
+        <meta name="google-site-verification" content="QTAcxhTlDcdF6IkhN01dMqruY6HALxbaNcAiUjmLowM" /> <!-- Get on Google search baby!-->
+        <meta name="msvalidate.01" content="8091CC4771992DFCBFDC9A3F56A57AC0" /> <!-- Don't forget bing! -->
+        <meta name="description" content="Discover meals at The Market in Danske Bank HQ. View menus and time slots easily." />
+    </head>
+    <body>
+        <main>
+            <div id="github-banner" class="github-banner" style="display: none;">
+                <div>
+                    <span>The food dashboard has moved!</span>
+                    <p>Don't worry, you have already be redirected to the new home of the Food Dashboard: <a href="https://food.homelab.soren.ranneries.com">https://food.homelab.soren.ranneries.com</a>. 
+                        Please update your bookmarks, if you have the page bookmarked. Otherwise you could take opportunity to bookmark the page now 😁 Hit <strong>Ctrl+D</strong>.
+                        The reason for the move is purely technical, don't worry the site will function the same as before!
+                    </p>
+                </div>
+                <button class="banner-close">&times;</button>
+            </div>
+            <header>
+                <h1>Food Dashboard</h1>
+                <div class="header-controls" style="display: none;">
+                    <select id="day-selector" ></select>
+                    <button id="random-dish-btn" class="random-dish-btn">🎲 Can't decide? Let me help you choose!</button>
+                </div>
+            </header>
+            <div id="food-table">
+                <div id="load-icon" class="spinner big">🌭</div>
+            </div>
+            <footer>
+                Disclaimer: This site is not affiliated with Danske Bank, Food@Danske, PubQ AB, or Compass Group. I am just some nerd who built this site because I wanted to.
+            </footer>
+        </main>
+        <template id="vendor-template">
+            
+            <section class="vendor">
+                <span class="vendor-header" >
+                    <img class="vendor-img" >
+                    <h2 class="vendor-name" ></h2>
+                </span>
+                <dl class="menu-item-list">
+
+                </dl>
+            </section>
+        </template>
+        <template id="menu-item-template">
+            <dt class="menu-item-header">
+                <img class="menu-img-small">
+                <h3 class="item-name"></h3>
+                <dialog class="menu-item-details">
+                    <h1 class="item-name"></h1>
+                    <img class="menu-img-big"> 
+                    <br>
+                    <p class="menu-item-description" ></p>
+                    <button autofocus>Close</button> 
+                </dialog>
+            </dt>
+            <dd class="timespans" >
+                <span class="spinner" >No times available...</span>
+            </dd>
+        </template>
+        
+        <dialog id="random-dish-dialog" class="random-dish-modal">
+            <div class="random-dish-content">
+                <h2>🎲 What Should I Eat?</h2>
+                <div id="spinning-container" class="spinning-container">
+                    <div class="spinning-dish">
+                        <img class="spinning-vendor-img" src="" alt="Vendor">
+                        <h3 class="spinning-dish-name">Selecting...</h3>
+                        <img class="spinning-dish-img" src="" alt="Dish">
+                    </div>
+                </div>
+                <div id="result-container" class="result-container" style="display: none;">
+                    <div class="result-dish">
+                        <h3>🍽️ Perfect! Here's your suggestion:</h3>
+                        <div class="result-vendor">
+                            <img class="result-vendor-img" src="" alt="Vendor">
+                            <span class="result-vendor-name"></span>
+                        </div>
+                        <h4 class="result-dish-name"></h4>
+                        <img class="result-dish-img" src="" alt="Selected Dish" style="cursor: pointer;">
+                        <dialog class="result-dish-details">
+                            <h1 class="result-details-name"></h1>
+                            <img class="result-details-img"> 
+                            <br>
+                            <p class="result-details-description"></p>
+                            <button autofocus>Close</button> 
+                        </dialog>
+                        <div class="result-timeslots">
+                            <h4>⏰ Available today:</h4>
+                            <div class="result-timeslots-list"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="random-dish-buttons">
+                    <button id="spin-button" class="spin-btn">🎲 Surprise Me!</button>
+                    <button id="close-random-dialog" class="close-btn">Close</button>
+                </div>
+            </div>
+        </dialog>
+        
+        <script type="module" async>
+            import { main } from './code.js';
+            main().catch(console.error);
+        </script>
+    </body>
+</html>
