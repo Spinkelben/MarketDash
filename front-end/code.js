@@ -4,12 +4,18 @@ import { ApiClient } from "./ApiClient.js";
 const checkGithubReferrer = () => {
     const referrer = document.referrer;
     console.log("Referrer:", referrer);
-    if (referrer && (referrer.includes('https://spinkelben.github.io')) && localStorage.getItem('githubRedirectSeen') !== 'true') {
+    if (referrer && referrer.includes('https://spinkelben.github.io') && localStorage.getItem('githubRedirectSeen') !== 'true') {
         const banner = document.getElementById('github-banner');
         if (banner) {
             banner.style.display = 'flex';
-            // set local storage flag to avoid showing again
-            localStorage.setItem('githubRedirectSeen', 'true');
+            // Configure close button
+            const closeButton = banner.querySelector('.banner-close');
+            closeButton.addEventListener('click', () => {
+                banner.style.display = 'none';
+                // set local storage flag to avoid showing again
+                localStorage.setItem('githubRedirectSeen', 'true');
+            });
+
         }
     }
 };
