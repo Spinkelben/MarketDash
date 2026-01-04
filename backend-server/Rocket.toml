@@ -1,0 +1,5 @@
+[default]
+otel_endpoint = "http://docker-host-ubuntu.tail447f59.ts.net:4318/v1/logs"
+
+[debug]
+otel_endpoint = "http://192.168.1.14:4318/v1/logs"
