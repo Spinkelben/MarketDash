@@ -1,5 +1,6 @@
 use rocket::State;
 use rocket::futures::lock::Mutex;
+use rocket::http::Status;
 use rocket::response::content::RawJson;
 use rocket::serde::{json::Json, Deserialize, Serialize};
 use rocket::tokio::time::{Instant, Duration};
@@ -22,7 +23,7 @@ struct VendorCache(Instant, String);
 
 #[get("/vendors")]
 #[instrument]
-async fn get_vendors(client : &State<Mutex<PubqClient>>, cache: &State<Mutex<Option<VendorCache>>>) -> Result<RawJson<String>, String> {
+async fn get_vendors(client : &State<Mutex<PubqClient>>, cache: &State<Mutex<Option<VendorCache>>>) -> Result<RawJson<String>, (rocket::http::Status, String)> {
     {
         let cache = &cache.lock().await;
         if let Some(vendor_cache) = cache.as_ref() {
@@ -34,7 +35,7 @@ async fn get_vendors(client : &State<Mutex<PubqClient>>, cache: &State<Mutex<Opt
 
     info!("Fetching vendors from PubQ");
     let mut client = client.lock().await;
-    client.connect(Duration::from_secs(5)).await.map_err(|er| format!("Connection failed {:?}", er))?;
+    client.connect(Duration::from_secs(5)).await.map_err(|er| (Status::InternalServerError, format!("Connection failed {:?}", er)))?;
 
     // Retry loop for get_vendors (up to 3 attempts with simple backoff)
     let mut attempts = 0;
@@ -44,11 +45,11 @@ async fn get_vendors(client : &State<Mutex<PubqClient>>, cache: &State<Mutex<Opt
             Ok(v) => break v,
             Err(e) if attempts >= 3 => { 
                 error!("Get vendors failed after {} attempts: {:?}", attempts, e);
-                return Err(format!("Get vendors failed after {} attempts: {:?}", attempts, e));     
+                return Err((Status::InternalServerError, format!("Get vendors failed after {} attempts: {:?}", attempts, e)));     
             },
             Err(_) => {
                 warn!("Get vendors attempt {} failed, retrying...", attempts);
-                client.connect(Duration::from_secs(5)).await.map_err(|er| format!("Re-connection failed {:?}", er))?;
+                client.connect(Duration::from_secs(5)).await.map_err(|er| (Status::InternalServerError, format!("Re-connection failed {:?}", er)))?;
             }
         }
     };
@@ -56,7 +57,7 @@ async fn get_vendors(client : &State<Mutex<PubqClient>>, cache: &State<Mutex<Opt
     let vendors_json = serde_json::to_string(&vendors)
         .map_err(|er| { 
             error!("Failed to serialize vendors: {:?}", er);
-            format!("Serialization failed {:?}", er) 
+            (Status::InternalServerError, format!("Serialization failed {:?}", er))
     })?;
     let cache = &mut cache.lock().await;
     **cache = Some(VendorCache(Instant::now(), vendors_json.clone()));
@@ -67,7 +68,7 @@ struct VenderMenuCache(HashMap<String, (Instant, serde_json::Value)>);
 
 #[get("/menu/<vendor_id>")]
 #[instrument]
-async fn get_menu(vendor_id: &str, client : &State<Mutex<PubqClient>>, vendor_cache : &State<Mutex<VenderMenuCache>>) -> Result<RawJson<String>, String> {
+async fn get_menu(vendor_id: &str, client : &State<Mutex<PubqClient>>, vendor_cache : &State<Mutex<VenderMenuCache>>) -> Result<RawJson<String>, (rocket::http::Status, String)> {
     let cache = &mut vendor_cache.lock().await.0;
     if let Some((timestamp, cached_menu)) = cache.get(vendor_id) {
 
@@ -75,7 +76,7 @@ async fn get_menu(vendor_id: &str, client : &State<Mutex<PubqClient>>, vendor_ca
             let menu_json = serde_json::to_string(cached_menu)
                 .map_err(|er| {
                     error!("Failed to serialize cached menu: {:?}", er);
-                    format!("Serialization failed {:?}", er) 
+                    (rocket::http::Status::InternalServerError, format!("Serialization failed {:?}", er))
                 })?;
             return Ok(RawJson(menu_json));
         }
@@ -83,7 +84,8 @@ async fn get_menu(vendor_id: &str, client : &State<Mutex<PubqClient>>, vendor_ca
 
     info!("Fetching menu for vendor {} from PubQ", vendor_id);
     let mut client = client.lock().await;
-    client.connect(Duration::from_secs(5)).await.map_err(|er| format!("Connection failed {:?}", er))?;
+    client.connect(Duration::from_secs(5)).await
+        .map_err(|er| (Status::InternalServerError, format!("Connection failed {:?}", er)))?;
 
     let mut attempts = 0;
     let menu = loop {
@@ -94,11 +96,11 @@ async fn get_menu(vendor_id: &str, client : &State<Mutex<PubqClient>>, vendor_ca
             Err(e) if attempts < 3 => {
                 warn!("Get menu failed: {:?}, retrying...", e);
                 client.connect(Duration::from_secs(5)).await
-                    .map_err(|er| format!("Re-connection failed {:?}", er))?;
+                    .map_err(|er| (Status::InternalServerError, format!("Re-connection failed {:?}", er)))?;
             },
             Err(e) => { 
                 error!("Get menu failed after {} attempts: {:?}", attempts, e);
-                return Err(format!("Get menu failed after {} attempts: {:?}", attempts, e))
+                return Err((Status::InternalServerError, format!("Get menu failed after {} attempts: {:?}", attempts, e)));
             },
         }    
     };
@@ -108,7 +110,7 @@ async fn get_menu(vendor_id: &str, client : &State<Mutex<PubqClient>>, vendor_ca
     let menu_json = serde_json::to_string(&menu)
         .map_err(|er| {
             error!("Failed to serialize menu: {:?}", er);
-            format!("Serialization failed {:?}", er) 
+            (Status::InternalServerError, format!("Serialization failed {:?}", er))
         })?;
     Ok(RawJson(menu_json))
 }
@@ -135,7 +137,7 @@ struct TimeSlotCache(HashMap<String, (Instant, String)>);
 
 #[post("/timeslots", data = "<body>")]
 #[instrument(skip(body))]
-async fn get_item_timeslots(body : Json<TimeslotRequest>, timeslot_cache : &State<Mutex<TimeSlotCache>>) -> Result<RawJson<String>, String> {
+async fn get_item_timeslots(body : Json<TimeslotRequest>, timeslot_cache : &State<Mutex<TimeSlotCache>>) -> Result<RawJson<String>, (rocket::http::Status, String)> {
     let cache_key = format!(
         "{}-{}",
         body.route_name,
@@ -156,16 +158,16 @@ async fn get_item_timeslots(body : Json<TimeslotRequest>, timeslot_cache : &Stat
     info!("Fetching timeslots for key {} from external service", cache_key);
     let request = body.into_inner();
     let json = serde_json::to_string(&request)
-        .map_err(|er| format!("Serialization failed {:?}", er))?;
+        .map_err(|er| (Status::InternalServerError, format!("Serialization failed {:?}", er)))?;
     let response = reqwest::Client::new()
         .post("https://payments2-jaonrqeeaq-ew.a.run.app/v1/orders/timeslots")
         .header("Content-Type", "application/json")
         .body(json)
         .send()
         .await
-        .map_err(|er| format!("HTTP request failed {:?}", er))?;    
+        .map_err(|er| (Status::InternalServerError, format!("HTTP request failed {:?}", er)))?;    
     let timeslots_json = response.text().await
-        .map_err(|er| format!("Deserializing response failed {:?}", er))?;
+        .map_err(|er| (Status::InternalServerError, format!("Deserializing response failed {:?}", er)))?;
     let cache = &mut timeslot_cache.lock().await.0;
 
     cache.insert(cache_key, (Instant::now(), timeslots_json.clone()));
