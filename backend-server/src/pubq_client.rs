@@ -1,7 +1,7 @@
-use rocket::{futures::{SinkExt, TryStreamExt}, tokio::select, serde::{Deserialize, Serialize}};
+use rocket::{futures::{SinkExt, TryStreamExt}, serde::{Deserialize, Serialize}, tokio::select};
 use serde_json::Value;
-use tracing::info;
 use std::time::Duration;
+use tracing::{error, info, warn};
 
 const SOCKET_URL : &str = "wss://s-usc1a-nss-2040.firebaseio.com/.ws?v=5&ns=pq-dev";
 
@@ -136,11 +136,59 @@ impl PubqClient {
                         let text = msg.into_text()?;
                         return Ok(text.to_string());
                     }
+                    else {
+                        warn!("Received non-text message: {:?}", msg);
+                    }
                 }
             }
         }
         warn!("No message received within timeout.");
         Err("No message received".into())
+    }
+
+    async fn handle_response(&mut self, timeout : Duration) -> Result<MessageWrapper, Box<dyn std::error::Error>> {
+        let mut response_text = self.receive_message(timeout).await?;
+        // Can it be parsed as integer?
+        if let Some(num_chunks) = response_text.trim().parse::<u64>().ok() {
+            // Message is a sent in the number of chunks to follow.
+            let mut full_message = String::new();
+            for _ in 0..num_chunks {
+                let chunk = self.receive_message(timeout).await?;
+                full_message.push_str(&chunk);
+            }
+            response_text = full_message;
+        }
+        
+        let response = serde_json::from_str::<MessageWrapper>(&response_text)?;
+        let response = match response {
+            MessageWrapper::Data(data) => data,
+            _ => {
+                error!("Expected data message, got this instead: {:?}", response);
+                return Err("Expected data message".into());
+            },
+        };
+
+        let status_text = self.receive_message(timeout).await?;
+        let status = serde_json::from_str::<MessageWrapper>(&status_text)?;
+        let status = match status {
+            MessageWrapper::Data(data) => data,
+            _ => {
+                error!("Expected data message, got this instead: {:?}", status);
+                return Err("Expected data message".into());
+            },
+        };
+        
+        if status.body.status.is_some() {
+            if status.body.status == Some(RequestStatus::Ok) {
+                return Ok(MessageWrapper::Data(response));
+            } else {
+                error!("Request failed with status: {:?}", status.body.status);
+                return Err("Request failed".into());
+            }
+        }
+
+        error!("No status found in response messages");
+        Err("No status found in response".into())
     }
 
     pub async fn get_vendors(&mut self, timeout: Duration) -> Result<Value, Box<dyn std::error::Error>> {
@@ -165,30 +213,18 @@ impl PubqClient {
                 Ok(()) => {}
             }
             self.next_id += 1;
-            let response_text = self.receive_message(timeout).await?;
-            let response = serde_json::from_str::<MessageWrapper>(&response_text)?;
+            let response = self.handle_response(timeout).await?;
             let mut vendors_opt: Option<Value> = None;
-            let status_message = self.receive_message(timeout).await?;
-            let status = serde_json::from_str::<MessageWrapper>(&status_message)?;
-            match status {
+            println!("Response from get_vendors: {:?}", response);
+            match response {
                 MessageWrapper::Data(data) => {
-                    if data.body.status == Some(RequestStatus::Ok) {
-                        match response {
-                            MessageWrapper::Data(data) => {
-                                if data.action == Some(RequestAction::Data) {
-                                    vendors_opt = data.body.data;
-                                }
-                            },
-                            m => {
-                                error!("Expected data response: {:?}", m);
-                                return Err("Expected data message".into())
-                            },
-                        }
+                    if data.action == Some(RequestAction::Data) {
+                        vendors_opt = data.body.data;
                     }
                 },
-                e => { 
-                    error!("Expected data status message, got this instead: {:?}", e);
-                    return Err("Expected data message".into()) 
+                m => {
+                    error!("Expected data response: {:?}", m);
+                    return Err("Expected data message".into())
                 },
             }
 
@@ -223,33 +259,19 @@ impl PubqClient {
             };
             
             self.next_id += 1;
-            let response_text = self.receive_message(timeout).await?;
-            let response = serde_json::from_str::<MessageWrapper>(&response_text)?;
+            let response = self.handle_response(timeout).await?;
             let mut menu_opt: Option<Value> = None;
-            let status_message = self.receive_message(timeout).await?;
-            let status = serde_json::from_str::<MessageWrapper>(&status_message)?;
-            match status {
+            match response {
                 MessageWrapper::Data(data) => {
-                    if data.body.status == Some(RequestStatus::Ok) {
-                        match response {
-                            MessageWrapper::Data(data) => {
-                                if data.action == Some(RequestAction::Data) {
-                                    menu_opt = data.body.data;
-                                }
-                            },
-                            m => { 
-                                error!("Expected data response : {:?}", m);
-                                return Err("Expected data message".into()) 
-                            },
-                        }
+                    if data.action == Some(RequestAction::Data) {
+                        menu_opt = data.body.data;
                     }
                 },
                 m => { 
-                    error!("Expected data status message, got this instead: {:?}", m);
+                    error!("Expected data response : {:?}", m);
                     return Err("Expected data message".into()) 
                 },
             }
-
             return menu_opt.ok_or("No menu data found".into());
         }
 
@@ -331,6 +353,22 @@ mod tests {
                 assert_eq!(data.request_id, None);
                 assert_eq!(data.action, Some(RequestAction::Data));
                 assert_eq!(data.body.path, Some("clientUnits/compassdk_danskebank/all".to_string()));
+                assert_eq!(data.body.hash, None);
+                assert_eq!(data.body.status, None);
+            },
+            _ => panic!("Parsed message is not a Data message"),
+        }
+    }
+
+    #[test]
+    fn can_parse_menu_response() {
+        let raw_message = r#"{"t":"d","d":{"b":{"p":"Clients/compassdk_dbhotspot/activeMenu/categories","d":{"0":{"items":{"0":{"Category":"","Cost":3500,"Description":"","DescriptionLong":"","ImageUrl":"https://firebasestorage.googleapis.com/v0/b/pq-dev.appspot.com/o/compassdk_dbhotspot%2FVendors%20Logo%20(1).png_1765450083.082?alt=media&token=8fbb8966-3a81-44d5-8962-33fc4eb1eca8","Name":"Today's hot dish","NameInternal":"","Volume":0,"basePrice":3500,"blurHash":"U4AAwOof00RjfRj[ayWB00ay~qt6RjWBt7t7","bongCategoryLabel":"Huvudrätt","buyWithBonusDisabled":true,"dateEdited":"2025-12-11T10:48:27.159Z","disabledReason":"","displayConfig":{"-3":true,"-2":true,"-1":true,"0":true,"app":true,"kiosk":true,"tableOrder":true,"web":true},"enabled":true,"externalId":"1759","externalOrigin":{"externalId":"1759","key":"External Id"},"isCombinedProduct":false,"isUsingBuildABurger":false,"key":"-O-0j9HBKcu4SX69EZvA","restrictedItem":false,"showStockBalance":false,"stockBalance":0,"type":{"bongCategoryType":{"dbId":"11966","externalId":"","id":"4","label":"Mad","productTypeId":"1"},"containsAlcohol":false,"productCategoryType":{"dbId":"10035","id":"2","label":"Mad","productTypeId":"1"},"productTypeId":1},"useStockBalance":false,"vatInfo":{"articleAccountId":"-MR5RqFv0tKPUcOYBVW_"}}},"name":"Sculpture Garden","type":"Mat"},"1":{"description":"","items":{"0":{"Category":"","Cost":0,"Description":"Get your drinks at The Bridge Café ","DescriptionLong":"","ImageUrl":"https://firebasestorage.googleapis.com/v0/b/pq-dev.appspot.com/o/compassdk_dbpopup%2FDagens_Ret_picto.png_1744121189.357?alt=media&token=c9302bef-8521-4780-bb12-9cdebaf9491e","Name":"We've got over 25 flavours to choose from!","Volume":0,"basePrice":0,"blurHash":"USDvsJfR00fQ9FfQxufQ00fQ?bfQ~qfQD%fQ","bongCategoryLabel":"Övrigt","buyWithBonusDisabled":true,"dateEdited":"2025-12-10T08:03:27.282Z","disabledReason":"","displayConfig":{"-3":true,"-2":true,"-1":true,"0":true,"app":true,"kiosk":true,"tableOrder":true,"web":true},"enabled":false,"externalId":"1759","externalOrigin":{"externalId":"1759","key":"External Id"},"isCombinedProduct":false,"isUsingBuildABurger":false,"key":"-OSyKbDNErfNK4xn09rg","restrictedItem":false,"showStockBalance":false,"stockBalance":0,"type":{"bongCategoryType":{"dbId":"11967","externalId":"","id":"5","label":"Drikke","productTypeId":"2"},"containsAlcohol":false,"productCategoryType":{"dbId":"10036","externalId":"","id":"3","label":"Drikke","productTypeId":"2"},"productTypeId":2},"useStockBalance":false,"vatInfo":{"articleAccountId":"-MR5RqFv0tKPUcOYBVW_"}}},"name":"Drinks Menu","type":"Dryck"}}},"a":"d"}}"#;
+        let parsed: MessageWrapper = serde_json::from_str(raw_message).unwrap();
+        match parsed {
+            MessageWrapper::Data(data) => {
+                assert_eq!(data.request_id, None);
+                assert_eq!(data.action, Some(RequestAction::Data));
+                assert_eq!(data.body.path, Some("Clients/compassdk_dbhotspot/activeMenu/categories".to_string()));
                 assert_eq!(data.body.hash, None);
                 assert_eq!(data.body.status, None);
             },

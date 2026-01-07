@@ -42,7 +42,10 @@ async fn get_vendors(client : &State<Mutex<PubqClient>>, cache: &State<Mutex<Opt
         attempts += 1;
         match client.get_vendors(Duration::from_secs(5)).await.map_err(|e| format!("Get vendors failed {:?}", e)) {
             Ok(v) => break v,
-            Err(e) if attempts >= 3 => return Err(format!("Get vendors failed after {} attempts: {:?}", attempts, e)),
+            Err(e) if attempts >= 3 => { 
+                error!("Get vendors failed after {} attempts: {:?}", attempts, e);
+                return Err(format!("Get vendors failed after {} attempts: {:?}", attempts, e));     
+            },
             Err(_) => {
                 warn!("Get vendors attempt {} failed, retrying...", attempts);
                 client.connect(Duration::from_secs(5)).await.map_err(|er| format!("Re-connection failed {:?}", er))?;

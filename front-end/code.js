@@ -59,8 +59,8 @@ const handleVendorMessage = (vendors, message) => {
                     continue;
                 }
 
-                if (vendor.enabled === false) {
-                    console.log('Skipping disabled vendor:', vendor.routeName);
+                if (vendor.visible === false) {
+                    console.log('Skipping hidden vendor:', vendor.routeName);
                     continue;
                 }
                 
