@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import HelloWorld from './components/HelloWorld.vue'
+import SimpleDropdown from './components/SimpleDropdown.vue'
+
+const options = ['Apple', 'Banana', 'Cherry', 'Date']
+const selectedOption = ref('')
 </script>
 
 <template>
@@ -11,6 +16,16 @@ import HelloWorld from './components/HelloWorld.vue'
       <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
     </a>
   </div>
+
+  <section>
+    <h2>Simple Dropdown Example</h2>
+    <SimpleDropdown
+      v-model="selectedOption"
+      :options="options"
+    />
+    <p>Selected: {{ selectedOption || 'none' }}</p>
+  </section>
+
   <HelloWorld msg="Vite + Vue" />
 </template>
 
