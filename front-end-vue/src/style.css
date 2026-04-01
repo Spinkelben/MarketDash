@@ -1,79 +1,58 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+:root { 
+    --primary-color: #1670d6; 
+    --secondary-color: #1a1b1d; 
+    --bg-color: #f9f9f9; 
+    --font-color: #333; 
+    --border-color: #ddd; 
+    --disabled-color: #f75340;
+    --enabled-color: #197d07;
+    --accent-color: #dee5f2;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+    max-width: 1200px;
+    margin: auto;
+    padding-left: 2em;
+    padding-right: 2em;
+    animation: fadeIn 1s ease-in-out;
+    background-color: var(--bg-color);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+
+h1,h2,h3 {
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--font-color);
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+header {
+    text-align: center;
 }
 
-.card {
-  padding: 2em;
+header h1 {
+    margin-bottom: 1em;
 }
 
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+h2,h3 {
+    display: inline;
+    font-weight: normal;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+span, footer, p {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    color: var(--font-color);
+}
+
+footer { 
+    text-align: center;
+    padding: 1em 0;
+    font-size: small;
+    color: var(--font-color);
+    border-top: 1px solid var(--border-color);
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1em; /* Space between items */
 }
