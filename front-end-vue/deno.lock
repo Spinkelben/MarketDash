@@ -606,6 +606,10 @@
     }
   },
   "workspace": {
+    "dependencies": [
+      "npm:vite@*",
+      "npm:vue@*"
+    ],
     "packageJson": {
       "dependencies": [
         "npm:@types/node@^25.0.9",

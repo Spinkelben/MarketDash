@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { } from 'vue'
 
 interface Props {
   options: string[]
@@ -7,6 +7,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const selected = defineModel<string>();
+selected.value = props.options[0];
 
 </script>
 
