@@ -1,23 +1,36 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import type { Product } from '../models';
 import MenuItemDetails from './MenuItemDetails.vue';
 
 interface Props {
   item: Product,
-  showDetails: boolean
 }
 
 const props = defineProps<Props>()
-
+const showDetails = ref(false);
 </script>
 
-<template>
-    <img :src="props.item.ImageUrl" alt="Menu Item Image" class="menu-img-small" />
-    <h3 class="item-name">{{ props.item.Name }}</h3>
-    <MenuItemDetails :item="props.item" />
+<template >
+    <dt class="menu-item-header" @click="showDetails = true" >
+        <img :src="props.item.ImageUrl" alt="Menu Item Image" class="menu-img-small" />
+        <h3 class="item-name">{{ props.item.Name }}</h3>
+    </dt>
+    <MenuItemDetails :item="props.item" v-model="showDetails" />
+    <dd>
+
+    </dd>
 </template>
 
 <style scoped>
+.menu-item-header {
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    gap: .25em;
+    cursor: pointer;
+}
+
 .menu-img-small {
     width: 50px;
     max-height: 50px;
