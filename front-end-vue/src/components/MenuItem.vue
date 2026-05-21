@@ -13,7 +13,7 @@ const showDetails = ref(false);
 
 <template >
     <dt class="menu-item-header" @click="showDetails = true" >
-        <img :src="props.item.ImageUrl" alt="Menu Item Image" class="menu-img-small" />
+        <img :src="props.item.ImageUrl" alt="Menu Item Image" class="menu-img-small" v-if="props.item.ImageUrl" />
         <h3 class="item-name">{{ props.item.Name }}</h3>
     </dt>
     <MenuItemDetails :item="props.item" v-model="showDetails" />
@@ -59,9 +59,6 @@ const showDetails = ref(false);
     margin-top: 0.5em;
 }
 
-.menu-item-details {
-    background-color: var(--accent-color);
-    border-radius: 10px;
-}
+
 
 </style>
