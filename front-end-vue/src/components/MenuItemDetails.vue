@@ -21,7 +21,7 @@ watch(open, (newVal) => {
 <template>
     <dialog ref="dialog" class="menu-item-details" closedby="any" @close="open = false">
         <h1 class="item-name">{{ item.Name }}</h1>
-        <img class="menu-img-big" :src="item.ImageUrl" alt="Menu Item Image" /> 
+        <img class="menu-img-big" :src="item.ImageUrl" alt="Menu Item Image" v-if="item.ImageUrl" /> 
         <br>
         <p class="menu-item-description" >{{ item.DescriptionLong }}</p>
         <button @click.prevent="dialog?.close()" autofocus>Close</button> 
