@@ -485,7 +485,7 @@ async function loadAllSites() {
 async function main(config = {}) {
     const {
         messageTimeout = 5000,
-        excludedVendors = ['compassdk_townhallcafe', 'compassdk_centralcafe'],
+        excludedVendors = ['compassdk_townhallcafe', 'compassdk_centralcafe', 'compassdk_dbarrivalcafe'],
         clientUnitsPath = '/clientUnits/compassdk_danskebank/all'
     } = config;
 
