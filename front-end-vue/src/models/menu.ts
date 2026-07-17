@@ -38,9 +38,16 @@ export class MenuModel {
   static async fetchMenu(vendorId: string): Promise<Category[]> {
     const response = await fetch(`/api/menu/${vendorId}`);
     if (!response.ok) {
-      throw new Error('Failed to fetch menu');
+      const errorText = await response.text().catch(() => response.statusText || 'Unknown error');
+      throw new Error(`Failed to fetch menu (${response.status}): ${errorText}`);
     }
 
-    return Object.values(await response.json()) as Category[];
+    const categories = Object.values(await response.json()) as Category[];
+    for (const category of categories) {
+      if (category.items) {
+        category.items = Object.values(category.items) as Product[];
+      }
+    }
+    return categories;
   }
 }
