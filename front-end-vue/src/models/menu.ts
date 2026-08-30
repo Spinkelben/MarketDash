@@ -20,6 +20,7 @@ export interface Product {
   showStockBalance?: boolean;
   stockBalance?: number;
   useStockBalance?: boolean;
+  venderRoute: string;
 }
 
 export interface Category {
@@ -46,6 +47,9 @@ export class MenuModel {
     for (const category of categories) {
       if (category.items) {
         category.items = Object.values(category.items) as Product[];
+        for (const item of category.items) {
+          item.venderRoute = vendorId;
+        }
       }
     }
     return categories;

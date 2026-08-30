@@ -2,9 +2,11 @@
 import { ref } from 'vue';
 import type { Product } from '../models';
 import MenuItemDetails from './MenuItemDetails.vue';
+import TimeSlotList from './TimeSlotList.vue';
 
 interface Props {
   item: Product,
+  timeslots?: boolean;
 }
 
 const props = defineProps<Props>()
@@ -17,9 +19,7 @@ const showDetails = ref(false);
         <h3 class="item-name">{{ props.item.Name }}</h3>
     </dt>
     <MenuItemDetails :item="props.item" v-model="showDetails" />
-    <dd>
-
-    </dd>
+    <TimeSlotList :item="props.item" v-if="props.timeslots" />
 </template>
 
 <style scoped>

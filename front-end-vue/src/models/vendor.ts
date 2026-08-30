@@ -9,6 +9,8 @@ export interface Vendor {
     timeslots?: boolean; // indicates if timeslots are available for this vendor
 }
 
+const skippedVendors : string[] = ["compassdk_centralcafe", "compassdk_centralcafe", "compassdk_townhallcafe", "compassdk_dbarrivalcafe"];
+
 export class VendorModel {
   static async fetchVendors(): Promise<Vendor[]> {
     const response = await fetch('/api/vendors');
@@ -29,6 +31,6 @@ export class VendorModel {
       return [vendor];
     });
 
-    return flattenedVendors;
+    return flattenedVendors.filter((vendor: Vendor) => !skippedVendors.includes(vendor.routeName));
   }
 }

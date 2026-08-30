@@ -2,6 +2,13 @@
 import VendorList from './components/VendorList.vue'
 import LoadingSpinner from './components/LoadingSpinner.vue';
 import GithubMoveBanner from './components/GithubMoveBanner.vue';
+import DaySelector from './components/DaySelector.vue';
+import { provide } from 'vue';
+import { DayManager } from './models/DayManager';
+import { dayManagerKey } from './models/injectionKeys';
+
+const dayManager = new DayManager();
+provide(dayManagerKey, dayManager);
 
 </script>
 
@@ -10,6 +17,7 @@ import GithubMoveBanner from './components/GithubMoveBanner.vue';
     <GithubMoveBanner />
     <header>
       <h1>Food Dashboard</h1>
+      <DaySelector />
     </header>
     <Suspense>
       <template #default>
