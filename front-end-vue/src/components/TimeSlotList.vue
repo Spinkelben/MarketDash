@@ -58,12 +58,14 @@ if (props.item.key) {
 
 <template>
     <dd class="timespans"">
-        <span v-for="timeslot in timeslotsOnSelectedDay?.timeslots" 
-            :key="timeslot.label" 
-            class="timeslot" 
-            :class="{ enabled: timeslot.enabled, disabled: !timeslot.enabled }">
-            {{ timeslot.label }}
-        </span>
+        <TransitionGroup name="timeslot-list" >
+            <span v-for="timeslot in timeslotsOnSelectedDay?.timeslots" 
+                :key="timeslotsOnSelectedDay?.label + '-' + timeslot.label" 
+                class="timeslot" 
+                :class="{ enabled: timeslot.enabled, disabled: !timeslot.enabled }">
+                {{ timeslot.label }}
+            </span>
+        </TransitionGroup>
     </dd>
 </template>
 
@@ -76,6 +78,21 @@ if (props.item.key) {
     /* margin-top: 1em; */
 }
 
+.timeslot-list-enter-active {
+    animation: fadeIn 1s ease-in;
+}
+
+.timeslot-list-leave-active {
+    /* Remove jitter caused by leaving elements being considered for flex layout */
+    position: absolute;
+    opacity: 0; 
+}
+
+.timeslot-list-enter-from, .timeslot-list-leave-to {
+    opacity: 0;
+    /* transform: translateY(-10px); */
+}
+
 .timeslot {
     /* margin: 0 10px; */
     font-size: large;
@@ -85,8 +102,12 @@ if (props.item.key) {
     border-style: solid;
     padding: .25em;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    animation: fadeIn 1s ease-in-out;
     border-radius: 10px;
+}
+
+@keyframes fadeIn { 
+    from { opacity: 0; } 
+    to { opacity: 1; } 
 }
 
 .timeslot.disabled {
