@@ -14,7 +14,14 @@ const props = defineProps<Props>()
       <img :src="props.vendor.imageUrl" alt="Vendor Logo" class="vendor-img" />
       <h2 class="vendor-name">{{ props.vendor.name }}</h2>
     </span>
-    <Menu :venderRoute="props.vendor.routeName" :timeslots="props.vendor.timeslots" />
+    <Suspense>
+      <template #default>
+        <Menu :venderRoute="props.vendor.routeName" :timeslots="props.vendor.timeslots" />
+      </template>
+      <template #fallback>
+        <p>Loading menu...</p>
+      </template>
+    </Suspense>
   </section>
 </template>
 

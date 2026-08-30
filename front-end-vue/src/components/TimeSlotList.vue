@@ -48,16 +48,11 @@ if (props.item.key) {
     } catch (error) {
         console.error("Error fetching timeslots:", error);
     }
-    
-
-
 }
-
-
 </script>
 
 <template>
-    <dd class="timespans"">
+    <dd class="timespans">
         <TransitionGroup name="timeslot-list" >
             <span v-for="timeslot in timeslotsOnSelectedDay?.timeslots" 
                 :key="timeslotsOnSelectedDay?.label + '-' + timeslot.label" 
