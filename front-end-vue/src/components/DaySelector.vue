@@ -14,7 +14,7 @@ function handleDayChange(event: Event) {
 
 
 <template>
-    <select name="day-selector" id="day-selector" @change="handleDayChange">
+    <select name="day-selector" id="day-selector" @change="handleDayChange" >
         <option v-for="day in dayManager.dayOptions.value" :value="day">{{ day }}</option>
     </select>
     
