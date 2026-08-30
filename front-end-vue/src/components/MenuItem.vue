@@ -14,15 +14,46 @@ const showDetails = ref(false);
 </script>
 
 <template >
-    <dt class="menu-item-header" @click="showDetails = true" >
-        <img :src="props.item.ImageUrl" alt="Menu Item Image" class="menu-img-small" v-if="props.item.ImageUrl" />
-        <h3 class="item-name">{{ props.item.Name }}</h3>
-    </dt>
-    <MenuItemDetails :item="props.item" v-model="showDetails" />
-    <TimeSlotList :item="props.item" v-if="props.timeslots" />
+    <Suspense>
+        <template #default>
+            <div>
+                <dt class="menu-item-header" @click="showDetails = true" >
+                    <img :src="props.item.ImageUrl" alt="Menu Item Image" class="menu-img-small" v-if="props.item.ImageUrl" />
+                    <h3 class="item-name">{{ props.item.Name }}</h3>
+                </dt>
+                <MenuItemDetails :item="props.item" v-model="showDetails" />
+                <Suspense>
+                    <template #default>
+                        <TimeSlotList :item="props.item" v-if="props.timeslots" />
+                    </template>
+                    <template #fallback>
+                        <p>Loading timeslots... <span class="spinner">⏰</span></p>
+                    </template>
+                </Suspense>
+            </div>
+        </template>
+        <template #fallback>
+            <dt class="menu-item-header">
+                <p>Loading menu item... <span class="spinner">🍴</span></p>
+            </dt>
+        </template>
+    </Suspense>
 </template>
 
 <style scoped>
+.spinner {
+    transform-origin: center;
+    animation: spin 1s linear infinite;
+    display: flex;
+    justify-content: center;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-360deg); }
+}
+
+
 .menu-item-header {
     display: flex;
     justify-content: left;
