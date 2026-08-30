@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { Vendor } from "../models";
 import Menu from "./Menu.vue";
-import VendorMenu from "./VendorMenu.vue";
 interface Props {
   vendor: Vendor
 }
@@ -15,7 +14,7 @@ const props = defineProps<Props>()
       <img :src="props.vendor.imageUrl" alt="Vendor Logo" class="vendor-img" />
       <h2 class="vendor-name">{{ props.vendor.name }}</h2>
     </span>
-    <Menu :venderRoute="props.vendor.routeName" />
+    <Menu :venderRoute="props.vendor.routeName" :timeslots="props.vendor.timeslots" />
   </section>
 </template>
 

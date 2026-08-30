@@ -6,6 +6,7 @@ import MenuItem from "./MenuItem.vue";
 
 interface Props {
   venderRoute: string;
+  timeslots?: boolean; // indicates if timeslots are available for this vendor
 }
 
 const props = defineProps<Props>();
@@ -32,6 +33,7 @@ const menuItems = computed<Product[]>(() => categories.value.flatMap((category) 
       <MenuItem
         v-for="item in menuItems"
         :item="item"
+        :timeslots="props.timeslots"
       />
     </dl>
   </div>
