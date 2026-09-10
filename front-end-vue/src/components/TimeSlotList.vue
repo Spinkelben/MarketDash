@@ -60,6 +60,9 @@ if (props.item.key) {
                 :class="{ enabled: timeslot.enabled, disabled: !timeslot.enabled }">
                 {{ timeslot.label }}
             </span>
+            <span v-if="!timeslotsOnSelectedDay?.timeslots || timeslotsOnSelectedDay?.timeslots.length === 0">
+                No timeslots available
+            </span>
         </TransitionGroup>
     </dd>
 </template>
