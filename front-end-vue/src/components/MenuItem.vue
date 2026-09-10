@@ -3,11 +3,13 @@ import { ref } from 'vue';
 import type { Product } from '../models';
 import MenuItemDetails from './MenuItemDetails.vue';
 import TimeSlotList from './TimeSlotList.vue';
+import LoadingSpinner from './LoadingSpinner.vue';
 
 interface Props {
   item: Product,
   timeslots?: boolean;
 }
+// ...existing code...
 
 const props = defineProps<Props>()
 const showDetails = ref(false);
@@ -27,14 +29,17 @@ const showDetails = ref(false);
                         <TimeSlotList :item="props.item" v-if="props.timeslots" />
                     </template>
                     <template #fallback>
-                        <p>Loading timeslots... <span class="spinner">⏰</span></p>
+                        <div class="loading-timeslot">
+                            <LoadingSpinner size="small" />
+                            <span>Loading Timeslots...</span>
+                        </div>
                     </template>
                 </Suspense>
             </div>
         </template>
         <template #fallback>
             <dt class="menu-item-header">
-                <p>Loading menu item... <span class="spinner">🍴</span></p>
+                <LoadingSpinner size="small" />
             </dt>
         </template>
     </Suspense>
@@ -46,6 +51,12 @@ const showDetails = ref(false);
     animation: spin 1s linear infinite;
     display: flex;
     justify-content: center;
+}
+
+.loading-timeslot {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
 }
 
 @keyframes spin {

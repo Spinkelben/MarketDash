@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
+interface Props {
+    size?: 'big' | 'small';
+}
+
+const props = withDefaults(defineProps<Props>(), {
+    size: 'big'
+});
+
 const getRandomFoodIcon = () => {
     const foodEmoji = ['🌭', '🍔', '🍕', '🍖', '🍗', '🍚', '🍜', '🍞', '🍟', '🍠', '🍣', '🍤', '🍩', '🍪', '🍰', '🥐', '🥓', '🥖', '🦐', '🦑',
 '🍿', '🥚', '🍳', '🧇', '🥞', '🧈', '🥨', '🧀', '🥗', '🥙', '🥪', '🌮', '🌯', '🥩', '🥟', '🥠', '🥡', '🍱', '🍘', '🍙', '🍛', '🦪', '🍥',
@@ -14,7 +22,7 @@ const foodIcon = computed(() => getRandomFoodIcon());
 </script>
 
 <template>
-  <div id="load-icon" class="spinner big">{{ foodIcon }}</div>
+  <div id="load-icon" class="spinner" :class="props.size">{{ foodIcon }}</div>
 </template>
 
 <style scoped>
@@ -22,9 +30,16 @@ const foodIcon = computed(() => getRandomFoodIcon());
     font-size: 16em;
 }
 
+.spinner.small {
+    font-size: 2em;
+}
+
 @media (max-width: 600px) {
     .spinner.big {
         font-size: 8em;
+    }
+    .spinner.small {
+        font-size: 1.5em;
     }
 }
 
