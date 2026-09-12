@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import VendorList from './components/VendorList.vue'
 import LoadingSpinner from './components/LoadingSpinner.vue';
 import GithubMoveBanner from './components/GithubMoveBanner.vue';
@@ -6,9 +7,19 @@ import DaySelector from './components/DaySelector.vue';
 import { provide } from 'vue';
 import { DayManager } from './models/DayManager';
 import { dayManagerKey } from './models/injectionKeys';
+import { VendorModel } from './models/vendor';
+import DishRandomizer from './components/DishRandomizer.vue';
 
 const dayManager = new DayManager();
 provide(dayManagerKey, dayManager);
+
+// Keep this setup synchronous so the root component renders immediately.
+// Top-level `await` in setup() is not allowed outside a <Suspense> boundary
+// and would leave the app blank until the fetch resolves.
+const vendors = ref<Vendor[] | null>(null);
+(async () => {
+  vendors.value = await VendorModel.fetchVendors();
+})();
 
 </script>
 
@@ -18,6 +29,7 @@ provide(dayManagerKey, dayManager);
     <header>
       <h1>Food Dashboard</h1>
       <DaySelector />
+      <DishRandomizer :vendors="vendors" />
     </header>
     <Suspense>
       <template #default>
