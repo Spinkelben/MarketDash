@@ -21,6 +21,11 @@ export interface Product {
   stockBalance?: number;
   useStockBalance?: boolean;
   venderRoute: string;
+  imageUrl?: string;
+  name?: string;
+  description?: string;
+  descriptionLong?: string;
+  id?: string;
 }
 
 export interface Category {
@@ -49,6 +54,11 @@ export class MenuModel {
         category.items = Object.values(category.items) as Product[];
         for (const item of category.items) {
           item.venderRoute = vendorId;
+          item.name = item.Name ?? item.name ?? '';
+          item.description = item.Description ?? item.description ?? '';
+          item.descriptionLong = item.DescriptionLong ?? item.descriptionLong ?? item.description ?? '';
+          item.imageUrl = item.ImageUrl ?? item.imageUrl ?? '';
+          item.id = item.key ?? item.id ?? item.Name ?? '';
         }
       }
     }
