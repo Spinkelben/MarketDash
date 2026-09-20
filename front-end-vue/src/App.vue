@@ -4,6 +4,7 @@ import VendorList from './components/VendorList.vue'
 import LoadingSpinner from './components/LoadingSpinner.vue';
 import GithubMoveBanner from './components/GithubMoveBanner.vue';
 import DaySelector from './components/DaySelector.vue';
+import ImageCanvas from './components/ImageCanvas.vue';
 import { provide } from 'vue';
 import { DayManager } from './models/DayManager';
 import { dayManagerKey } from './models/injectionKeys';
@@ -28,8 +29,10 @@ const vendors = ref<Vendor[] | null>(null);
     <GithubMoveBanner />
     <header>
       <h1>Food Dashboard</h1>
-      <DaySelector />
-      <DishRandomizer :vendors="vendors" />
+      <div class="header-controls">
+        <DaySelector />
+        <DishRandomizer :vendors="vendors" />
+      </div>
     </header>
     <Suspense>
       <template #default>
@@ -47,6 +50,12 @@ const vendors = ref<Vendor[] | null>(null);
 </template>
 
 <style scoped>
-
-
+.header-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75em;
+  margin-bottom: 1em;
+  flex-direction: column;
+}
 </style>
