@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { inject, ref, watch } from 'vue';
+import { inject, ref, watch, computed } from 'vue';
 import type { DishData, Timeslot, Vendor, Product } from '../models';
 import { TimeslotModel } from '../models';
 import type { TimeslotResponse, TimeslotRequest } from '../models';
@@ -15,7 +15,17 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {});
 
-const emit = defineEmits<{ close: void }>();
+const emit = defineEmits<{ close: void; reroll: void }>();
+
+const dayManager = inject<DayManager>(dayManagerKey);
+
+const availabilityHeading = computed(() => {
+  const day = dayManager?.selectedDay.value;
+  if (day) {
+    return `⏰ Available ${day}:`;
+  }
+  return '⏰ Available today:';
+});
 
 // Match the legacy JS logic: parse the ISO timestamp and render it as HH:mm.
 function formatTime(timeslot: Timeslot) {
@@ -36,7 +46,6 @@ watch(() => props.dish, async () => {
 
 // Fetch and render timeslots for the selected dish on the selected day.
 async function displayTimeslots(selectedDish: DishData) {
-  const dayManager = inject<DayManager>(dayManagerKey);
   const selectedDay = dayManager?.selectedDay.value ?? null;
 
   const request: TimeslotRequest = {
@@ -108,7 +117,7 @@ async function displayTimeslots(selectedDish: DishData) {
       />
 
       <div class="result-timeslots">
-        <h4>⏰ Available today:</h4>
+        <h4>{{ availabilityHeading }}</h4>
         <TimeSlotList
           :timeslots="displayedTimeslots"
           :loading="isLoadingTimeslots"
@@ -117,8 +126,11 @@ async function displayTimeslots(selectedDish: DishData) {
         />
       </div>
     </div>
-    <button @click="$emit('close')" class="close-btn">Close</button>
-  </div>
+    <div class="button-group">
+      <button @click="$emit('reroll')" class="reroll-btn">🔄 Reroll</button>
+      <button @click="$emit('close')" class="close-btn">Close</button>
+    </div>
+    </div >
 </template>
 
 <style scoped>
@@ -237,5 +249,27 @@ async function displayTimeslots(selectedDish: DishData) {
 
 .close-btn:hover {
   background-color: #333;
+}
+
+.button-group {
+  display: flex;
+  gap: 1em;
+  justify-content: center;
+}
+
+.reroll-btn {
+  padding: 0.75em 1.5em;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1em;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  transition: all 0.3s ease;
+  background-color: var(--primary-color, #1670d6);
+  color: white;
+}
+
+.reroll-btn:hover {
+  background-color: #1456b8;
 }
 </style>
