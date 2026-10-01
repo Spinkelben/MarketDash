@@ -18,6 +18,8 @@ const emit = defineEmits<{ close: void }>();
 const currentSpinningDish = ref<DishData | null>(null);
 const isSpinning = ref(false);
 const selectedDish = ref<DishData | null>(null);
+const seenDishIds = ref<Set<string>>(new Set());
+const isShowingAllSeenMessage = ref(false);
 const isLoadingOptions = ref(false);
 let cachedDishes: DishData[] = [];
 
@@ -26,6 +28,7 @@ const resetDialog = () => {
   selectedDish.value = null;
   currentSpinningDish.value = null;
   isLoadingOptions.value = false;
+  seenDishIds.value.clear();
 };
 
 const openModal = async () => {
@@ -50,6 +53,25 @@ const closeModal = () => {
   const dialog = document.querySelector('.random-dish-modal') as HTMLDialogElement | null;
   dialog?.close();
   resetDialog();
+};
+
+const handleReroll = async () => {
+  selectedDish.value = null;
+
+  const availableDishes = cachedDishes.filter(d => !seenDishIds.value.has(d.dish.key || d.dish.Name));
+
+  if (availableDishes.length === 0) {
+    isShowingAllSeenMessage.value = true;
+    
+    // Wait for 2 seconds to show the message
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    seenDishIds.value.clear();
+    isShowingAllSeenMessage.value = false;
+    await spin(1000, cachedDishes);
+  } else {
+    await spin(1000, availableDishes);
+  }
 };
 
 const getAllDishes = async (): Promise<DishData[]> => {
@@ -86,11 +108,46 @@ const getAllDishes = async (): Promise<DishData[]> => {
   return allDishes;
 };
 
-const startSpinning = async (dishes: DishData[]): Promise<DishData> => {
+const spin = async (duration: number = 3000, dishesToUse: DishData[] | null = null) => {
+  if (isSpinning.value || isLoadingOptions.value) return;
+
+  let dishes: DishData[];
+  if (dishesToUse) {
+    dishes = dishesToUse;
+  } else {
+    dishes = cachedDishes.length ? cachedDishes : await getAllDishes();
+    if (dishes.length > 0) {
+      cachedDishes = dishes;
+    }
+  }
+
+  if (!dishes.length) {
+    alert('Oops! No dishes are available right now. Please try again later.');
+    return;
+  }
+
+  try {
+    await preloadImages(dishes);
+    const selected = await startSpinning(dishes, duration);
+    
+    // Track the seen dish
+    seenDishIds.value.add(selected.dish.key || selected.dish.Name);
+
+    setTimeout(() => {
+      isSpinning.value = false;
+      currentSpinningDish.value = null;
+      selectedDish.value = selected;
+    }, 100);
+  } catch (error) {
+    console.error('Error during dish selection:', error);
+  }
+};
+
+const startSpinning = async (dishes: DishData[], duration: number = 3000): Promise<DishData> => {
   isSpinning.value = true;
   currentSpinningDish.value = dishes[0];
 
-  const spinDuration = 3000;
+  const spinDuration = duration;
   const spinInterval = 100;
   const totalSteps = Math.ceil(spinDuration / spinInterval);
   let currentStep = 0;
@@ -109,30 +166,6 @@ const startSpinning = async (dishes: DishData[]): Promise<DishData> => {
     }, spinInterval);
   });
 };
-
-const spin = async () => {
-  if (isSpinning.value || isLoadingOptions.value) return;
-
-  const dishes = cachedDishes.length ? cachedDishes : await getAllDishes();
-  if (!dishes.length) {
-    alert('Oops! No dishes are available right now. Please try again later.');
-    return;
-  }
-
-  cachedDishes = dishes;
-
-  try {
-    await preloadImages(dishes);
-    const selected = await startSpinning(dishes);
-    setTimeout(() => {
-      isSpinning.value = false;
-      currentSpinningDish.value = null;
-      selectedDish.value = selected;
-    }, 100);
-  } catch (error) {
-    console.error('Error during dish selection:', error);
-  }
-};
 </script>
 
 <template>
@@ -145,6 +178,14 @@ const spin = async () => {
         <p>Loading delicious options...</p>
       </div>
 
+      <div v-else-if="isShowingAllSeenMessage" class="fun-message-overlay">
+        <div class="fun-message-content">
+          <div class="fun-emoji">🎉</div>
+          <p>You've seen them all!</p>
+          <p class="sub-message">Let's start fresh! 🎲</p>
+        </div>
+      </div>
+
       <ReadyView
         v-else-if="!selectedDish && !currentSpinningDish"
         :dish="currentSpinningDish"
@@ -155,7 +196,7 @@ const spin = async () => {
 
       <SpinningDish v-else-if="currentSpinningDish && selectedDish === null" :dish="currentSpinningDish" />
 
-      <ResultDish v-else-if="selectedDish !== null" :dish="selectedDish" @close="closeModal" />
+      <ResultDish v-else-if="selectedDish !== null" :dish="selectedDish" @close="closeModal" @reroll="handleReroll" />
     </div>
   </dialog>
 </template>
@@ -200,6 +241,36 @@ const spin = async () => {
   border-top-color: var(--primary-color, #1670d6);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+.fun-message-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+}
+
+.fun-message-content {
+  text-align: center;
+}
+
+.fun-emoji {
+  font-size: 3em;
+  margin-bottom: 0.5em;
+}
+
+.fun-message-content p {
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: bold;
+  color: var(--primary-color, #1670d6);
+}
+
+.fun-message-content .sub-message {
+  font-size: 1em;
+  font-weight: normal;
+  color: var(--font-color, #1a1b1d);
+  margin-top: 0.5em;
 }
 
 @keyframes spin {
