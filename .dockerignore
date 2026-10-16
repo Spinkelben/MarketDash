@@ -6,6 +6,7 @@
 # IDEs and editors
 .vscode/
 .idea/
+.playwright-mcp/
 
 # Version control
 .git/
