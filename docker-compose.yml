@@ -2,7 +2,7 @@
 services:
   backend:
     # Get the image from GitHub Container Registry
-    image: ghcr.io/spinkelben/marketdash/food-dashboard:add-backend
+    image: marketdash:latest
 
     container_name: marketdash
     ports:
@@ -11,16 +11,10 @@ services:
       - RUST_LOG=info
       - ROCKET_PORT=8000
       - ROCKET_ADDRESS=0.0.0.0
+      - ROCKET_OTEL_ENDPOINT=http://docker-host-ubuntu.tail447f59.ts.net:4318/v1/logs
     restart: unless-stopped
     networks:
       - marketdash-network
-    # Optional: Add health check
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
 networks:
   marketdash-network:

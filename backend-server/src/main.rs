@@ -236,7 +236,7 @@ fn rocket() -> _ {
     let cors = setup_cors();
     rocket::build()
         .mount("/api", routes![get_vendors, get_menu, get_item_timeslots, health])
-        .mount("/", FileServer::from("../front-end"))
+        .mount("/", FileServer::from("front-end-vue/dist"))
         .manage(Mutex::new(PubqClient::new()))
         .manage(Mutex::new(VenderMenuCache(HashMap::new())))
         .manage(Mutex::new(TimeSlotCache(HashMap::new())))

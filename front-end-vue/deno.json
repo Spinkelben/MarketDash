@@ -1,0 +1,10 @@
+{
+  "imports": {
+    "vite": "npm:vite",
+    "vue": "npm:vue"
+  },
+  "tasks": {
+    "dev": "deno run -A npm:vite",
+    "build": "deno run -A npm:vite build"
+  }
+}
