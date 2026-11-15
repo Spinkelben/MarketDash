@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { VendorModel } from '../models';
-import Vendor from "./Vendor.vue";
-const vendors = await VendorModel.fetchVendors();
+import { useCatalog } from '../stores/catalog';
+import LoadingSpinner from './LoadingSpinner.vue';
+import Vendor from './Vendor.vue';
 
+const { status, error, vendors } = useCatalog();
 </script>
 
 <template>
-  <div class="food-table">
-    <div v-for="vendor in vendors" :key="vendor.routeName">
-      <Vendor :vendor="vendor" />
-    </div>
+  <p v-if="status === 'error'" class="vendors-error">Unable to load vendors: {{ error }}</p>
+  <div v-else-if="status === 'ready'" class="food-table">
+    <Vendor v-for="vendor in vendors" :key="vendor.routeName" :vendor="vendor" />
   </div>
+  <LoadingSpinner v-else />
 </template>
 
 <style scoped>

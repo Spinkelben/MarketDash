@@ -1,27 +1,17 @@
 <script setup lang="ts">
-import type { Vendor } from "../models";
-import Menu from "./Menu.vue";
-interface Props {
-  vendor: Vendor
-}
+import type { Vendor } from '../types';
+import Menu from './Menu.vue';
 
-const props = defineProps<Props>()
+defineProps<{ vendor: Vendor }>();
 </script>
 
 <template>
   <section class="vendor">
     <span class="vendor-header">
-      <img :src="props.vendor.imageUrl" alt="Vendor Logo" class="vendor-img" />
-      <h2 class="vendor-name">{{ props.vendor.name }}</h2>
+      <img v-if="vendor.imageUrl" :src="vendor.imageUrl" alt="Vendor Logo" class="vendor-img" />
+      <h2 class="vendor-name">{{ vendor.name }}</h2>
     </span>
-    <Suspense>
-      <template #default>
-        <Menu :venderRoute="props.vendor.routeName" :timeslots="props.vendor.timeslots" />
-      </template>
-      <template #fallback>
-        <p>Loading menu...</p>
-      </template>
-    </Suspense>
+    <Menu :vendor-route="vendor.routeName" :timeslots="vendor.timeslots" />
   </section>
 </template>
 

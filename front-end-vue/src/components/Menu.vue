@@ -1,39 +1,31 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import type { Category, Product } from "../models";
-import { MenuModel } from "../models";
-import MenuItem from "./MenuItem.vue";
+import { computed } from 'vue';
+import { useCatalog } from '../stores/catalog';
+import MenuItem from './MenuItem.vue';
 
-interface Props {
-  venderRoute: string;
-  timeslots?: boolean; // indicates if timeslots are available for this vendor
-}
+const props = defineProps<{
+  vendorRoute: string;
+  /** Whether timeslots are available for this vendor. */
+  timeslots?: boolean;
+}>();
 
-const props = defineProps<Props>();
-const categories = ref<Category[]>([]);
-const fetchError = ref<string | null>(null);
-
-try {
-    categories.value = await MenuModel.fetchMenu(props.venderRoute);
-} catch (error) {
-    fetchError.value = error instanceof Error ? error.message : String(error ?? "Unknown error");
-}
-
-const menuItems = computed<Product[]>(() => categories.value.flatMap((category) => category.items ?? []));
-
+const { menus } = useCatalog();
+const menu = computed(() => menus[props.vendorRoute]);
 </script>
 
 <template>
   <div class="menu">
-    <p v-if="fetchError" class="menu-error">
-      Unable to load menu: {{ fetchError }}
+    <p v-if="!menu || menu.status === 'loading'">Loading menu...</p>
+    <p v-else-if="menu.status === 'error'" class="menu-error">
+      Unable to load menu: {{ menu.error }}
     </p>
-    <p v-else-if="menuItems.length === 0">No menu items available.</p>
+    <p v-else-if="menu.dishes.length === 0">No menu items available.</p>
     <dl v-else class="menu-item-list">
       <MenuItem
-        v-for="item in menuItems"
-        :item="item"
-        :timeslots="props.timeslots"
+        v-for="dish in menu.dishes"
+        :key="dish.id"
+        :item="dish"
+        :timeslots="timeslots"
       />
     </dl>
   </div>

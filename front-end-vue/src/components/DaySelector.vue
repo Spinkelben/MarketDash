@@ -1,23 +1,13 @@
 <script setup lang="ts">
-import { inject } from 'vue';
-import { dayManagerKey } from '../models/injectionKeys';
-import type { DayManager } from '../models/DayManager';
+import { useTimeslots } from '../stores/timeslots';
 
-const dayManager = inject<DayManager>(dayManagerKey) as DayManager;
-
-function handleDayChange(event: Event) {
-    const target = event.target as HTMLSelectElement;
-    dayManager.selectDay(target.value);
-}
-
+const { dayOptions, selectedDay } = useTimeslots();
 </script>
 
-
 <template>
-    <select name="day-selector" id="day-selector" @change="handleDayChange" >
-        <option v-for="day in dayManager.dayOptions.value" :value="day">{{ day }}</option>
-    </select>
-    
+  <select id="day-selector" v-model="selectedDay" name="day-selector">
+    <option v-for="day in dayOptions" :key="day" :value="day">{{ day }}</option>
+  </select>
 </template>
 
 <style scoped>

@@ -1,70 +1,32 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import type { Product } from '../models';
-import MenuItemDetails from './MenuItemDetails.vue';
+import { useDishTimeslots } from '../composables/useDishTimeslots';
+import type { Dish } from '../types';
+import DishDetailsDialog from './DishDetailsDialog.vue';
 import TimeSlotList from './TimeSlotList.vue';
-import LoadingSpinner from './LoadingSpinner.vue';
 
-interface Props {
-  item: Product,
+const props = defineProps<{
+  item: Dish;
+  /** Whether the vendor offers timeslots; when false none are loaded or shown. */
   timeslots?: boolean;
-}
-// ...existing code...
+}>();
 
-const props = defineProps<Props>()
 const showDetails = ref(false);
+const { timeslots: slots, loading } = useDishTimeslots(() => (props.timeslots ? props.item : null));
 </script>
 
-<template >
-    <Suspense>
-        <template #default>
-            <div>
-                <dt class="menu-item-header" @click="showDetails = true" >
-                    <img :src="props.item.ImageUrl" alt="Menu Item Image" class="menu-img-small" v-if="props.item.ImageUrl" />
-                    <h3 class="item-name">{{ props.item.Name }}</h3>
-                </dt>
-                <MenuItemDetails :item="props.item" v-model="showDetails" />
-                <Suspense>
-                    <template #default>
-                        <TimeSlotList :item="props.item" v-if="props.timeslots" />
-                    </template>
-                    <template #fallback>
-                        <div class="loading-timeslot">
-                            <LoadingSpinner size="small" />
-                            <span>Loading Timeslots...</span>
-                        </div>
-                    </template>
-                </Suspense>
-            </div>
-        </template>
-        <template #fallback>
-            <dt class="menu-item-header">
-                <LoadingSpinner size="small" />
-            </dt>
-        </template>
-    </Suspense>
+<template>
+  <div>
+    <dt class="menu-item-header" @click="showDetails = true">
+      <img v-if="item.imageUrl" :src="item.imageUrl" alt="Menu Item Image" class="menu-img-small" />
+      <h3 class="item-name">{{ item.name }}</h3>
+    </dt>
+    <DishDetailsDialog v-model:open="showDetails" :dish="item" />
+    <TimeSlotList v-if="timeslots" :timeslots="slots" :loading="loading" />
+  </div>
 </template>
 
 <style scoped>
-.spinner {
-    transform-origin: center;
-    animation: spin 1s linear infinite;
-    display: flex;
-    justify-content: center;
-}
-
-.loading-timeslot {
-    display: flex;
-    align-items: center;
-    gap: 0.5em;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(-360deg); }
-}
-
-
 .menu-item-header {
     display: flex;
     justify-content: left;
@@ -82,25 +44,5 @@ const showDetails = ref(false);
     animation: fadeIn 1s ease-in-out;
     border-radius: 10px;
 }
-
-.menu-img-big {
-    max-width: 75vw;
-    min-width: 50vw;
-    max-height: 30vh;
-    object-fit: contain;
-    margin: 0 auto;
-    display: block;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-}
-
-.menu-item-description {
-    white-space: pre-wrap;
-    display: block;
-    max-width: 50vw;
-    margin-top: 0.5em;
-}
-
-
 
 </style>

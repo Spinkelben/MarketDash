@@ -1,124 +1,34 @@
 <script setup lang="ts">
-import type { Product } from '../models';
-import { computed, inject, onMounted, ref, watch, type Ref } from 'vue';
-import type { DayManager } from '../models/DayManager';
-import { dayManagerKey } from '../models/injectionKeys';
-import { TimeslotModel } from '../models';
-import type { Timeslot, TimeslotRequest, TimeslotResponse } from '../models/timeslot';
+import type { Timeslot } from '../types';
 import LoadingSpinner from './LoadingSpinner.vue';
 
-interface Props {
-  item?: Product;
-  timeslots?: Timeslot[];
-  selectedDay?: string | null;
-  emptyText?: string;
-  variant?: 'default' | 'result';
-  loading?: boolean;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  item: undefined,
-  timeslots: () => [],
-  selectedDay: null,
-  emptyText: 'No timeslots available',
-  variant: 'default',
-  loading: false,
-});
-
-const dayManager = inject<DayManager | undefined>(dayManagerKey);
-const timeslots: Ref<TimeslotResponse> = ref([]);
-const isLoading = ref(false);
-
-const selectedDay = computed(() => props.selectedDay ?? dayManager?.selectedDay.value ?? null);
-const showLoading = computed(() => props.loading || isLoading.value);
-
-const resolvedTimeslots = computed<Timeslot[]>(() => {
-  if (props.timeslots.length > 0) {
-    return [...props.timeslots].sort((a, b) => {
-      const aTime = Date.parse(a.dateISO || new Date(a.date).toISOString());
-      const bTime = Date.parse(b.dateISO || new Date(b.date).toISOString());
-      return aTime - bTime;
-    });
-  }
-
-  if (!selectedDay.value) {
-    return [];
-  }
-
-  const selectedTimeSlots = timeslots.value.filter((day) => day.label === selectedDay.value);
-  const matches = selectedTimeSlots[0]?.timeslots ?? [];
-  return [...matches].sort((a, b) => {
-    const aTime = Date.parse(a.dateISO || new Date(a.date).toISOString());
-    const bTime = Date.parse(b.dateISO || new Date(b.date).toISOString());
-    return aTime - bTime;
-  });
-});
-
-function formatTime(timeslot: Timeslot) {
-  const time = Date.parse(timeslot.dateISO || new Date(timeslot.date).toISOString());
-  return new Intl.DateTimeFormat('da-dk', { hour: 'numeric', minute: 'numeric' }).format(time);
-}
-
-function getSlotClasses(timeslot: Timeslot) {
-  if (props.variant === 'result') {
-    return `${timeslot.enabled ? 'enabled' : 'disabled'} result-timeslot`;
-  }
-
-  return `${timeslot.enabled ? 'enabled' : 'disabled'} timeslot`;
-}
-
-async function loadTimeslots() {
-  if (!props.item?.key) {
-    return;
-  }
-
-  const request: TimeslotRequest = {
-    routeName: props.item.venderRoute,
-    products: [{
-      bongCategoryId: 0,
-      quantity: 1,
-      productId: props.item.key,
-      productName: props.item.Name,
-    }],
-  };
-
-  isLoading.value = true;
-
-  try {
-    const result = await TimeslotModel.fetchTimeslots(request);
-    timeslots.value = result;
-    dayManager?.addDays(timeslots.value);
-  } catch (error) {
-    console.error('Error fetching timeslots:', error);
-  } finally {
-    isLoading.value = false;
-  }
-}
-
-onMounted(() => {
-  void loadTimeslots();
-});
-
-watch(
-  () => props.item?.key,
-  () => {
-    void loadTimeslots();
+withDefaults(
+  defineProps<{
+    timeslots: Timeslot[];
+    loading?: boolean;
+    emptyText?: string;
+    variant?: 'default' | 'result';
+  }>(),
+  {
+    emptyText: 'No timeslots available',
+    variant: 'default',
   },
-  { immediate: false },
 );
+
+const timeFormatter = new Intl.DateTimeFormat('da-dk', { hour: 'numeric', minute: 'numeric' });
 </script>
 
 <template>
   <dd class="timespans">
     <TransitionGroup name="timeslot-list">
-      <template v-if="showLoading && resolvedTimeslots.length === 0">
+      <template v-if="loading && timeslots.length === 0">
         <div key="loading-timeslots" class="loading-timeslot">
           <LoadingSpinner size="small" />
           <span>Loading times...</span>
         </div>
       </template>
 
-      <template v-else-if="resolvedTimeslots.length === 0">
+      <template v-else-if="timeslots.length === 0">
         <span key="empty-timeslots" class="no-times">
           {{ emptyText }}
         </span>
@@ -126,11 +36,14 @@ watch(
 
       <template v-else>
         <span
-          v-for="timeslot in resolvedTimeslots"
-          :key="(timeslot.dateISO || timeslot.date) + '-' + timeslot.label"
-          :class="getSlotClasses(timeslot)"
+          v-for="timeslot in timeslots"
+          :key="timeslot.time"
+          :class="[
+            timeslot.enabled ? 'enabled' : 'disabled',
+            variant === 'result' ? 'result-timeslot' : 'timeslot',
+          ]"
         >
-          {{ formatTime(timeslot) }}
+          {{ timeFormatter.format(timeslot.time) }}
         </span>
       </template>
     </TransitionGroup>
