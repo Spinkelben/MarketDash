@@ -1,4 +1,4 @@
-use rocket::{futures::{SinkExt, TryStreamExt}, serde::{Deserialize, Serialize}, tokio::select};
+use rocket::{futures::{SinkExt, TryStreamExt}, serde::{Deserialize, Serialize}};
 use serde_json::Value;
 use std::time::Duration;
 use tracing::{error, info, warn};
@@ -84,66 +84,84 @@ impl PubqClient {
         }
     }
 
+    /// Drop the current connection so the next `connect` starts from scratch.
+    /// Called on every failure: after a timeout or a malformed reply, the
+    /// request/response sequence on the socket can no longer be trusted.
+    fn disconnect(&mut self) {
+        self.is_connected = false;
+        self.stream = None;
+    }
+
     pub async fn connect(&mut self, timeout : Duration) -> Result<(), Box<dyn std::error::Error>> {
-        if self.is_connected {    
+        if self.is_connected && self.stream.is_some() {
             return Ok(());
         }
 
-        let (ws_stream, _) = tokio_tungstenite::connect_async(&self.socket_url).await?;
+        self.disconnect();
+        let (ws_stream, _) = match tokio::time::timeout(timeout, tokio_tungstenite::connect_async(&self.socket_url)).await {
+            Ok(result) => result?,
+            Err(_) => {
+                error!("Timed out connecting to PubQ after {:?}", timeout);
+                return Err("Timed out connecting to PubQ".into());
+            }
+        };
         self.stream = Some(ws_stream);
         self.next_id = 1;
         let header = self.receive_message(timeout).await?;
-        let header = serde_json::from_str::<MessageWrapper>(&header)?;
-        match header {
-            MessageWrapper::Control(_) => {
+        match serde_json::from_str::<MessageWrapper>(&header) {
+            Ok(MessageWrapper::Control(_)) => {
                 self.is_connected = true;
-                return Ok(());
+                Ok(())
             },
             _ => {
+                self.disconnect();
                 let error = "Expected control header message";
                 error!("{}", error);
-                return Err(error.into());
+                Err(error.into())
             }
         }
     }
 
     async fn receive_message(&mut self, timeout : Duration) -> Result<String, Box<dyn std::error::Error>> {
-        if let Some(stream) = &mut self.stream {
-            select! {
-                _ = tokio::spawn(async move { tokio::time::sleep(timeout).await }) => {
-                    warn!("Timeout reached while waiting for messages.");
+        let deadline = tokio::time::Instant::now() + timeout;
+        loop {
+            let Some(stream) = &mut self.stream else {
+                warn!("Cannot receive message: not connected.");
+                return Err("Not connected".into());
+            };
+
+            let msg = match tokio::time::timeout_at(deadline, stream.try_next()).await {
+                Err(_) => {
+                    // The connection is probably dead (half-open), and even if it is not,
+                    // a late reply would be mistaken for the answer to the next request.
+                    warn!("Timeout reached while waiting for messages, dropping connection.");
+                    self.disconnect();
+                    return Err("Timed out waiting for message".into());
                 },
-                msg = stream.try_next() =>  {
-                    let msg = match msg {
-                        Ok(Some(m)) => m,
-                        Ok(None) => {
-                            // Stream closed (EOF). Clean up state and return an error so callers know.
-                            self.is_connected = false;
-                            // Drop the stream by taking it out of the option to avoid holding a mutable borrow.
-                            self.stream = None;
-                            info!("WebSocket connection closed by server.");
-                            return Err("WebSocket closed (EOF)".into());
-                        }
-                        Err(e) => {
-                            // On underlying error, mark disconnected and drop stream.
-                            self.is_connected = false;
-                            self.stream = None;
-                            error!("Error receiving message: {:?}", e);
-                            return Err(Box::new(e));
-                        }
-                    };
-                    if msg.is_text() {
-                        let text = msg.into_text()?;
-                        return Ok(text.to_string());
-                    }
-                    else {
-                        warn!("Received non-text message: {:?}", msg);
-                    }
-                }
+                Ok(Ok(Some(m))) => m,
+                Ok(Ok(None)) => {
+                    self.disconnect();
+                    info!("WebSocket connection closed by server.");
+                    return Err("WebSocket closed (EOF)".into());
+                },
+                Ok(Err(e)) => {
+                    self.disconnect();
+                    error!("Error receiving message: {:?}", e);
+                    return Err(Box::new(e));
+                },
+            };
+
+            if msg.is_text() {
+                let text = msg.into_text()?;
+                return Ok(text.to_string());
             }
+            if msg.is_close() {
+                self.disconnect();
+                info!("WebSocket close frame received from server.");
+                return Err("WebSocket closed by server".into());
+            }
+            // Ping/pong/binary frames: keep waiting for a text message until the deadline.
         }
-        warn!("No message received within timeout.");
-        Err("No message received".into())
     }
 
     async fn handle_response(&mut self, timeout : Duration) -> Result<MessageWrapper, Box<dyn std::error::Error>> {
@@ -158,7 +176,7 @@ impl PubqClient {
             }
             response_text = full_message;
         }
-        
+
         let response = serde_json::from_str::<MessageWrapper>(&response_text)?;
         let response = match response {
             MessageWrapper::Data(data) => data,
@@ -177,7 +195,7 @@ impl PubqClient {
                 return Err("Expected data message".into());
             },
         };
-        
+
         if status.body.status.is_some() {
             if status.body.status == Some(RequestStatus::Ok) {
                 return Ok(MessageWrapper::Data(response));
@@ -191,92 +209,67 @@ impl PubqClient {
         Err("No status found in response".into())
     }
 
-    pub async fn get_vendors(&mut self, timeout: Duration) -> Result<Value, Box<dyn std::error::Error>> {
-        if let Some(stream) = &mut self.stream {
-            let request = MessageWrapper::Data(Data {
-                request_id: Some(self.next_id),
-                action: Some(RequestAction::Query),
-                body: RequestBody {
-                    path: Some("/clientUnits/compassdk_danskebank/all".to_string()),
-                    hash: Some("".to_string()),
-                    ..Default::default()
-                }
-            });
-            let request_text = serde_json::to_string(&request)?;
-            match stream.send(tokio_tungstenite::tungstenite::Message::Text(request_text.into())).await {
-                Err(e) => {
-                    // Treat as disconnected (send failed). Clean up stream and return error.
-                    self.is_connected = false;
-                    self.stream = None;
-                    error!("Failed to send get_vendors request {}", e);
-                },
-                Ok(()) => {}
+    /// Send a query for `path` and return the data of the reply.
+    /// Any failure drops the connection, so a retry reconnects cleanly.
+    async fn query(&mut self, path: String, timeout: Duration) -> Result<Option<Value>, Box<dyn std::error::Error>> {
+        let request = MessageWrapper::Data(Data {
+            request_id: Some(self.next_id),
+            action: Some(RequestAction::Query),
+            body: RequestBody {
+                path: Some(path),
+                hash: Some("".to_string()),
+                ..Default::default()
             }
-            self.next_id += 1;
-            let response = self.handle_response(timeout).await?;
-            let mut vendors_opt: Option<Value> = None;
-            println!("Response from get_vendors: {:?}", response);
-            match response {
-                MessageWrapper::Data(data) => {
-                    if data.action == Some(RequestAction::Data) {
-                        vendors_opt = data.body.data;
-                    }
-                },
-                m => {
-                    error!("Expected data response: {:?}", m);
-                    return Err("Expected data message".into())
-                },
-            }
+        });
+        let request_text = serde_json::to_string(&request)?;
+        let Some(stream) = &mut self.stream else {
+            error!("Failed to send request: not connected");
+            return Err("Not connected".into());
+        };
 
-            return vendors_opt.ok_or("No vendors data found".into());
+        let message = tokio_tungstenite::tungstenite::Message::Text(request_text.into());
+        match tokio::time::timeout(timeout, stream.send(message)).await {
+            Ok(Ok(())) => {},
+            Ok(Err(e)) => {
+                self.disconnect();
+                error!("Failed to send request: {}", e);
+                return Err(Box::new(e));
+            },
+            Err(_) => {
+                self.disconnect();
+                error!("Timed out sending request after {:?}", timeout);
+                return Err("Timed out sending request".into());
+            },
         }
+        self.next_id += 1;
 
-        error!("Failed to get vendors: not connected");
-        Err("Failed to get vendors".into())
+        let response = match self.handle_response(timeout).await {
+            Ok(response) => response,
+            Err(e) => {
+                self.disconnect();
+                return Err(e);
+            },
+        };
+        match response {
+            MessageWrapper::Data(data) if data.action == Some(RequestAction::Data) => Ok(data.body.data),
+            MessageWrapper::Data(_) => Ok(None),
+            m => {
+                self.disconnect();
+                error!("Expected data response: {:?}", m);
+                Err("Expected data message".into())
+            },
+        }
+    }
+
+    pub async fn get_vendors(&mut self, timeout: Duration) -> Result<Value, Box<dyn std::error::Error>> {
+        let vendors = self.query("/clientUnits/compassdk_danskebank/all".to_string(), timeout).await?;
+        vendors.ok_or("No vendors data found".into())
     }
 
     pub async fn get_vender_menu(&mut self, vendor_route: &str, timeout: Duration) -> Result<Value, Box<dyn std::error::Error>> {
-        if let Some(stream) = &mut self.stream {
-            let path = format!("/Clients/{}/activeMenu/categories", vendor_route);
-            let request = MessageWrapper::Data(Data {
-                request_id: Some(self.next_id),
-                action: Some(RequestAction::Query),
-                body: RequestBody {
-                    path: Some(path),
-                    hash: Some("".to_string()),
-                    ..Default::default()
-                }
-            });
-            let request_text = serde_json::to_string(&request)?;
-            match stream.send(tokio_tungstenite::tungstenite::Message::Text(request_text.into())).await {
-                Err(_) => {
-                    // Treat as disconnected (send failed). Clean up stream and return error.
-                    self.is_connected = false;
-                    self.stream = None;
-                    error!("Failed to send get_vender_menu request");
-                },
-                Ok(()) => {}  
-            };
-            
-            self.next_id += 1;
-            let response = self.handle_response(timeout).await?;
-            let mut menu_opt: Option<Value> = None;
-            match response {
-                MessageWrapper::Data(data) => {
-                    if data.action == Some(RequestAction::Data) {
-                        menu_opt = data.body.data;
-                    }
-                },
-                m => { 
-                    error!("Expected data response : {:?}", m);
-                    return Err("Expected data message".into()) 
-                },
-            }
-            return menu_opt.ok_or("No menu data found".into());
-        }
-
-        error!("Connection failure when getting vendor menu");
-        Err("Connection failure".into())
+        let path = format!("/Clients/{}/activeMenu/categories", vendor_route);
+        let menu = self.query(path, timeout).await?;
+        menu.ok_or("No menu data found".into())
     }
 
 }
