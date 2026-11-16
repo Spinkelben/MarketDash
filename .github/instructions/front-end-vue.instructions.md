@@ -47,9 +47,9 @@ The code under `src/` is layered, and dependencies point one way:
 
 ## Tools and Libraries
 - **Vue 3.5+**: Composition API only; no state library (Pinia would be the next step if the stores outgrow plain composables)
-- **Vite** via Deno:
-  - `deno task dev` for development (proxies `/api` to the backend on `localhost:8000`)
-  - `deno task build` for the production build into `dist/`, which the backend serves
+- **Vite** on Node, with npm as the package manager (`npm install` to set up):
+  - `npm run dev` for development (proxies `/api` to the backend on `localhost:8000`)
+  - `npm run build` for the production build into `dist/`, which the backend serves
 - **Type check**: `npm run typecheck` (`vue-tsc`). The build does not type-check, so run this before committing
 - No linter or test runner is configured
 
