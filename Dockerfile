@@ -12,11 +12,11 @@ ENV OPENSSL_DIR=/base-chroot/usr
 RUN cargo build --release --manifest-path ./backend-server/Cargo.toml
 
 # Build Stage for Vue Frontend
-FROM node:24-alpine AS vue-build
+FROM cgr.dev/chainguard/node:latest-dev AS vue-build
 WORKDIR /app
-COPY front-end-vue/package.json front-end-vue/package-lock.json ./
+COPY --chown=node:node front-end-vue/package.json front-end-vue/package-lock.json ./
 RUN npm ci
-COPY front-end-vue/ .
+COPY --chown=node:node front-end-vue/ .
 RUN npm run build
 
 # Final Stage
