@@ -66,24 +66,37 @@ async fn get_vendors(client : &State<Mutex<PubqClient>>, cache: &State<Mutex<Opt
 
 struct VenderMenuCache(HashMap<String, (Instant, serde_json::Value)>);
 
+async fn cached_menu_json(vendor_cache: &Mutex<VenderMenuCache>, vendor_id: &str) -> Result<Option<String>, (Status, String)> {
+    let cache = &vendor_cache.lock().await.0;
+    match cache.get(vendor_id) {
+        Some((timestamp, cached_menu)) if timestamp.elapsed() < Duration::from_secs(300) => {
+            serde_json::to_string(cached_menu)
+                .map(Some)
+                .map_err(|er| {
+                    error!("Failed to serialize cached menu: {:?}", er);
+                    (Status::InternalServerError, format!("Serialization failed {:?}", er))
+                })
+        },
+        _ => Ok(None),
+    }
+}
+
 #[get("/menu/<vendor_id>")]
 #[instrument]
 async fn get_menu(vendor_id: &str, client : &State<Mutex<PubqClient>>, vendor_cache : &State<Mutex<VenderMenuCache>>) -> Result<RawJson<String>, (rocket::http::Status, String)> {
-    let cache = &mut vendor_cache.lock().await.0;
-    if let Some((timestamp, cached_menu)) = cache.get(vendor_id) {
+    if let Some(menu_json) = cached_menu_json(vendor_cache, vendor_id).await? {
+        return Ok(RawJson(menu_json));
+    }
 
-        if timestamp.elapsed() < Duration::from_secs(300) {
-            let menu_json = serde_json::to_string(cached_menu)
-                .map_err(|er| {
-                    error!("Failed to serialize cached menu: {:?}", er);
-                    (rocket::http::Status::InternalServerError, format!("Serialization failed {:?}", er))
-                })?;
-            return Ok(RawJson(menu_json));
-        }
+    // The cache lock is not held while talking to PubQ, so a slow or dead
+    // upstream cannot block requests that can be answered from the cache.
+    let mut client = client.lock().await;
+    // Another request may have fetched this menu while we waited for the client.
+    if let Some(menu_json) = cached_menu_json(vendor_cache, vendor_id).await? {
+        return Ok(RawJson(menu_json));
     }
 
     info!("Fetching menu for vendor {} from PubQ", vendor_id);
-    let mut client = client.lock().await;
     client.connect(Duration::from_secs(5)).await
         .map_err(|er| (Status::InternalServerError, format!("Connection failed {:?}", er)))?;
 
@@ -105,7 +118,8 @@ async fn get_menu(vendor_id: &str, client : &State<Mutex<PubqClient>>, vendor_ca
         }    
     };
 
-    cache.insert(vendor_id.to_string(), (Instant::now(), menu.clone()));
+    drop(client);
+    vendor_cache.lock().await.0.insert(vendor_id.to_string(), (Instant::now(), menu.clone()));
 
     let menu_json = serde_json::to_string(&menu)
         .map_err(|er| {
@@ -137,7 +151,7 @@ struct TimeSlotCache(HashMap<String, (Instant, String)>);
 
 #[post("/timeslots", data = "<body>")]
 #[instrument(skip(body))]
-async fn get_item_timeslots(body : Json<TimeslotRequest>, timeslot_cache : &State<Mutex<TimeSlotCache>>) -> Result<RawJson<String>, (rocket::http::Status, String)> {
+async fn get_item_timeslots(body : Json<TimeslotRequest>, timeslot_cache : &State<Mutex<TimeSlotCache>>, http_client : &State<reqwest::Client>) -> Result<RawJson<String>, (rocket::http::Status, String)> {
     let cache_key = format!(
         "{}-{}",
         body.route_name,
@@ -159,7 +173,7 @@ async fn get_item_timeslots(body : Json<TimeslotRequest>, timeslot_cache : &Stat
     let request = body.into_inner();
     let json = serde_json::to_string(&request)
         .map_err(|er| (Status::InternalServerError, format!("Serialization failed {:?}", er)))?;
-    let response = reqwest::Client::new()
+    let response = http_client
         .post("https://payments2-jaonrqeeaq-ew.a.run.app/v1/orders/timeslots")
         .header("Content-Type", "application/json")
         .body(json)
@@ -234,7 +248,14 @@ fn rocket() -> _ {
     setup_telemetry(&otel_endpoint);
     
     let cors = setup_cors();
+    // Shared client with timeouts, so a stalled timeslot service cannot hang requests forever.
+    let http_client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(5))
+        .timeout(Duration::from_secs(10))
+        .build()
+        .expect("Failed to create HTTP client");
     rocket::build()
+        .manage(http_client)
         .mount("/api", routes![get_vendors, get_menu, get_item_timeslots, health])
         .mount("/", FileServer::from("front-end-vue/dist"))
         .manage(Mutex::new(PubqClient::new()))
