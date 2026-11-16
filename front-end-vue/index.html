@@ -5,6 +5,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon4.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Sets the theme before the first paint so a dark page never flashes light. Same rule as src/stores/theme.ts. -->
+    <script>
+      (function () {
+        var theme = null;
+        try { theme = localStorage.getItem('theme'); } catch (e) {}
+        if (theme !== 'light' && theme !== 'dark') {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
     <script defer data-domain="food.homelab.soren.ranneries.com" src="https://analytics.homelab.soren.ranneries.com/js/script.outbound-links.js"></script>
     <script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
     <meta name="google-site-verification" content="QTAcxhTlDcdF6IkhN01dMqruY6HALxbaNcAiUjmLowM" /> <!-- Get on Google search baby!-->

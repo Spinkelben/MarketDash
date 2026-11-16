@@ -91,7 +91,7 @@ const showAllergens = ref(withoutAllergens.value.length > 0);
 .chip {
   font: inherit;
   color: var(--font-color);
-  background: white;
+  background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 999px;
   padding: 0.35em 0.9em;
@@ -144,7 +144,7 @@ const showAllergens = ref(withoutAllergens.value.length > 0);
 
 .clear-btn {
   font: inherit;
-  color: var(--primary-color);
+  color: var(--primary-text-color);
   background: none;
   border: none;
   padding: 0.35em 0.5em;

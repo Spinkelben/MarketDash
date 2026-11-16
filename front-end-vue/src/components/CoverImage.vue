@@ -43,7 +43,7 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #ddd;
+  background-color: var(--border-color);
   font-size: 18px;
 }
 </style>

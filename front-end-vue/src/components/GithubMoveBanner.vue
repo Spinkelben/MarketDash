@@ -53,7 +53,7 @@ onMounted(() => {
 
 <style scoped>
 .github-banner {
-    background-color: #f0f8ff;
+    background-color: var(--info-bg-color);
     border: 2px solid var(--primary-color);
     border-radius: 4px;
     padding: 1em;
@@ -62,7 +62,7 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
     font-weight: 500;
-    color: var(--primary-color);
+    color: var(--primary-text-color);
     animation: slideDown 0.3s ease-in-out;
 }
 
@@ -71,13 +71,13 @@ onMounted(() => {
     border: none;
     font-size: 1.5em;
     cursor: pointer;
-    color: var(--primary-color);
+    color: var(--primary-text-color);
     padding: 0;
     margin-left: 1em;
 }
 
 .banner-close:hover {
-    color: var(--secondary-color);
+    color: var(--font-color);
 }
 
 @keyframes slideDown {

@@ -126,7 +126,7 @@ const { timeslots, loading: timeslotsLoading } = useDishTimeslots(() =>
   width: 32px;
   height: 32px;
   border: 4px solid rgba(22, 112, 214, 0.2);
-  border-top-color: var(--primary-color, #1670d6);
+  border-top-color: var(--primary-text-color);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -151,7 +151,7 @@ const { timeslots, loading: timeslotsLoading } = useDishTimeslots(() =>
   margin: 0;
   font-size: 1.2em;
   font-weight: bold;
-  color: var(--primary-color, #1670d6);
+  color: var(--primary-text-color);
 }
 
 .fun-message-content .sub-message {
@@ -195,7 +195,7 @@ const { timeslots, loading: timeslotsLoading } = useDishTimeslots(() =>
 }
 
 .random-dish-btn {
-  background-color: var(--primary-color, #1670d6);
+  background-color: var(--primary-color);
   color: white;
   border: none;
   padding: 0.5em 1em;
@@ -206,6 +206,6 @@ const { timeslots, loading: timeslotsLoading } = useDishTimeslots(() =>
 }
 
 .random-dish-btn:hover {
-  background-color: #1456b8;
+  background-color: var(--primary-hover-color);
 }
 </style>

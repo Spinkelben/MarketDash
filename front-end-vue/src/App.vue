@@ -3,6 +3,7 @@ import VendorList from './components/VendorList.vue';
 import GithubMoveBanner from './components/GithubMoveBanner.vue';
 import DaySelector from './components/DaySelector.vue';
 import DishFilter from './components/DishFilter.vue';
+import ThemeToggle from './components/ThemeToggle.vue';
 import DishRandomizer from './components/randomizer/DishRandomizer.vue';
 import { useCatalog } from './stores/catalog';
 
@@ -15,6 +16,7 @@ void useCatalog().load();
   <main>
     <GithubMoveBanner />
     <header>
+      <ThemeToggle class="theme-toggle" />
       <h1>Food Dashboard</h1>
       <div class="header-controls">
         <div class="primary-controls">
@@ -33,6 +35,24 @@ void useCatalog().load();
 </template>
 
 <style scoped>
+header {
+  position: relative;
+}
+
+/* Sits at the header's right edge, vertically centred on the title. The offsets
+   follow the title's top margin, which is smaller on phones (see style.css). */
+.theme-toggle {
+  position: absolute;
+  top: 1.3em;
+  right: 0;
+}
+
+@media (max-width: 600px) {
+  .theme-toggle {
+    top: 0.5em;
+  }
+}
+
 /* One panel for everything that controls the list below it, styled like the vendor cards. */
 .header-controls {
   display: flex;

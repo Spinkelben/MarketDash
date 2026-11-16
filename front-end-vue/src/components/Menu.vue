@@ -51,7 +51,7 @@ const shownDishes = computed(() => (menu.value?.dishes ?? []).filter(matches));
 }
 
 .menu-error {
-    color: #c00;
+    color: var(--error-color);
     margin: 0 0 1em;
 }
 </style>
