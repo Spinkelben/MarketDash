@@ -56,3 +56,16 @@ main {
     align-items: center;
     gap: 1em; /* Space between items */
 }
+
+/* Phones: give the content the width instead of the page margins. */
+@media (max-width: 600px) {
+    body {
+        padding-left: 0.6em;
+        padding-right: 0.6em;
+    }
+
+    header h1 {
+        margin: 0.5em 0;
+        font-size: 1.6em;
+    }
+}

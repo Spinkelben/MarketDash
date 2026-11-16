@@ -15,6 +15,24 @@ export interface Vendor {
   timeslots: boolean;
 }
 
+export type Diet = 'vegetarian' | 'vegan' | 'halal';
+
+export type Allergen =
+  | 'gluten'
+  | 'milk'
+  | 'eggs'
+  | 'fish'
+  | 'crustaceans'
+  | 'molluscs'
+  | 'peanuts'
+  | 'nuts'
+  | 'soy'
+  | 'sesame'
+  | 'mustard'
+  | 'celery'
+  | 'sulphites'
+  | 'lupin';
+
 export interface Dish {
   /** Product key, used as the product id when requesting timeslots. */
   id: string;
@@ -27,6 +45,10 @@ export interface Dish {
   /** Price in whole currency units (the API sends minor units). */
   price: number;
   enabled: boolean;
+  /** Diets the vendor labels the dish with. A vegan dish is also vegetarian. */
+  diets: Diet[];
+  /** Allergens the vendor lists for the dish; null when the vendor does not say. */
+  allergens: Allergen[] | null;
 }
 
 export interface Timeslot {

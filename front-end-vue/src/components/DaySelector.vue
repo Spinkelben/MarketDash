@@ -12,7 +12,13 @@ const { dayOptions, selectedDay } = useTimeslots();
 
 <style scoped>
 select {
-    font-size: large;
+    font-size: 1em;
+    padding: 0.5em 0.6em;
+    color: var(--font-color);
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
     font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
     animation: fadeIn 1s ease-in-out;
 }
