@@ -15,7 +15,7 @@ select {
     font-size: 1em;
     padding: 0.5em 0.6em;
     color: var(--font-color);
-    background: white;
+    background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     cursor: pointer;

@@ -33,7 +33,7 @@ const open = defineModel<boolean>('open', { required: true });
 
 .dish-name {
   margin: 0 0 0.75em;
-  color: var(--primary-color, #1670d6);
+  color: var(--primary-text-color);
   font-family: Arial, Helvetica, sans-serif;
   text-align: center;
 }
@@ -70,7 +70,7 @@ const open = defineModel<boolean>('open', { required: true });
 
 button {
   display: block;
-  background-color: var(--primary-color, #1670d6);
+  background-color: var(--primary-color);
   color: white;
   border: none;
   padding: 10px 20px;

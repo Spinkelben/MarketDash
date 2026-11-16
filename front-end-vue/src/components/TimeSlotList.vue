@@ -111,13 +111,13 @@ const timeFormatter = new Intl.DateTimeFormat('da-dk', { hour: 'numeric', minute
 
 .timeslot.disabled,
 .result-timeslot.disabled {
-  color: #f75340;
+  color: var(--disabled-color);
   text-decoration: line-through;
 }
 
 .timeslot.enabled,
 .result-timeslot.enabled {
-  color: #197d07;
+  color: var(--enabled-text-color);
 }
 
 .result-timeslot.enabled {
@@ -134,12 +134,12 @@ const timeFormatter = new Intl.DateTimeFormat('da-dk', { hour: 'numeric', minute
   display: inline-flex;
   align-items: center;
   gap: 0.5em;
-  color: #666;
+  color: var(--muted-color);
   font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .no-times {
-  color: #666;
+  color: var(--muted-color);
   font-style: italic;
   font-family: Verdana, Geneva, Tahoma, sans-serif;
 }

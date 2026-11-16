@@ -68,7 +68,7 @@ const showDetails = ref(false);
 
 .result-dish h3 {
   margin: 0;
-  color: var(--enabled-color, #197d07);
+  color: var(--enabled-text-color);
   font-size: 1em;
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -91,7 +91,7 @@ const showDetails = ref(false);
 .result-dish-name {
   font-size: 1.3em;
   margin: 0;
-  color: var(--primary-color, #1670d6);
+  color: var(--primary-text-color);
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -129,7 +129,7 @@ const showDetails = ref(false);
 }
 
 .close-btn:hover {
-  background-color: #333;
+  background-color: var(--secondary-hover-color);
 }
 
 .button-group {
@@ -146,11 +146,11 @@ const showDetails = ref(false);
   font-size: 1em;
   font-family: Verdana, Geneva, Tahoma, sans-serif;
   transition: all 0.3s ease;
-  background-color: var(--primary-color, #1670d6);
+  background-color: var(--primary-color);
   color: white;
 }
 
 .reroll-btn:hover {
-  background-color: #1456b8;
+  background-color: var(--primary-hover-color);
 }
 </style>

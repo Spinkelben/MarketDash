@@ -7,9 +7,39 @@
     --disabled-color: #f75340;
     --enabled-color: #197d07;
     --accent-color: #dee5f2;
+    /* Primary and enabled as text colors; the plain ones are backgrounds for white text. */
+    --primary-text-color: #1670d6;
+    --primary-hover-color: #1456b8;
+    --secondary-hover-color: #333;
+    --enabled-text-color: #197d07;
+    --surface-color: #fff;
+    --muted-color: #666;
+    --error-color: #c00;
+    --info-bg-color: #f0f8ff;
+    color-scheme: light;
+}
+
+/* Set on <html> by the script in index.html and kept up to date by stores/theme.ts. */
+:root[data-theme='dark'] {
+    --primary-color: #1f6fd0;
+    --secondary-color: #3a404a;
+    --bg-color: #121417;
+    --font-color: #e3e5e8;
+    --border-color: #3a404a;
+    --accent-color: #1f2630;
+    --primary-text-color: #6aaeff;
+    --primary-hover-color: #2f80e0;
+    --secondary-hover-color: #4a515d;
+    --enabled-text-color: #62c850;
+    --surface-color: #2a313c;
+    --muted-color: #a0a6ad;
+    --error-color: #ff6b6b;
+    --info-bg-color: #17263a;
+    color-scheme: dark;
 }
 
 body {
+    color: var(--font-color);
     max-width: 1200px;
     margin: auto;
     padding-left: 2em;
