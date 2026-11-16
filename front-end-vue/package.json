@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "deno run -A npm:vite",
-    "build": "deno run -A npm:vite build",
+    "dev": "vite",
+    "build": "vite build",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
     "preview": "vite preview"
   },

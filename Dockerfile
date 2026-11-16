@@ -12,12 +12,12 @@ ENV OPENSSL_DIR=/base-chroot/usr
 RUN cargo build --release --manifest-path ./backend-server/Cargo.toml
 
 # Build Stage for Vue Frontend
-FROM denoland/deno:alpine AS vue-build
+FROM cgr.dev/chainguard/node:latest-dev AS vue-build
 WORKDIR /app
-COPY front-end-vue/deno.json front-end-vue/deno.lock front-end-vue/package.json ./
-RUN deno install --node-modules-dir
-COPY front-end-vue/ .
-RUN deno task build
+COPY --chown=node:node front-end-vue/package.json front-end-vue/package-lock.json ./
+RUN npm ci
+COPY --chown=node:node front-end-vue/ .
+RUN npm run build
 
 # Final Stage
 FROM cgr.dev/chainguard/glibc-dynamic:latest 
