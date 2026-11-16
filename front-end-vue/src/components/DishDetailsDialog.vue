@@ -10,6 +10,7 @@ const open = defineModel<boolean>('open', { required: true });
   <BaseDialog v-model:open="open" class="dish-details">
     <div class="dish-details-content">
       <h1 class="dish-name">{{ dish.name }}</h1>
+      <p v-if="dish.description.trim()" class="dish-tagline">{{ dish.description.trim() }}</p>
       <img v-if="dish.imageUrl" class="dish-img" :src="dish.imageUrl" alt="Menu Item Image" />
       <p class="dish-description">{{ dish.descriptionLong }}</p>
       <button autofocus @click="open = false">Close</button>
@@ -35,6 +36,15 @@ const open = defineModel<boolean>('open', { required: true });
   color: var(--primary-color, #1670d6);
   font-family: Arial, Helvetica, sans-serif;
   text-align: center;
+}
+
+.dish-tagline {
+  margin: -0.5em 0 1em;
+  text-align: center;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
 }
 
 .dish-img {
@@ -71,5 +81,24 @@ button {
 
 button:hover {
   background-color: var(--secondary-color, #1a1b1d);
+}
+
+/* On a phone the dialog and its text use nearly the whole screen width. */
+@media (max-width: 600px) {
+  .dish-details {
+    max-width: 94vw;
+    max-height: 90vh;
+  }
+
+  .dish-name {
+    font-size: 1.3em;
+  }
+
+  .dish-description {
+    max-width: none;
+    margin-top: 1em;
+    padding: 0;
+    font-size: 0.9em;
+  }
 }
 </style>

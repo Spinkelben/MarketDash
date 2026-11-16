@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useDishRandomizer } from '../../composables/useDishRandomizer';
 import { useDishTimeslots } from '../../composables/useDishTimeslots';
 import { useCatalog } from '../../stores/catalog';
+import { useFilters } from '../../stores/filters';
 import { useTimeslots } from '../../stores/timeslots';
 import { preloadImages } from '../../lib/images';
 import BaseDialog from '../BaseDialog.vue';
@@ -13,12 +14,15 @@ import DishRandomizerSpinning from './DishRandomizerSpinning.vue';
 // This component is the randomizer's container: it connects the stores and the
 // state machine to the views below, which only take props and emit events.
 const catalog = useCatalog();
-const { state, spin, reroll, reset } = useDishRandomizer(catalog.availableDishes);
+const filters = useFilters();
+/** The dishes to choose from: the ones that pass the user's filters. */
+const dishes = computed(() => catalog.availableDishes.value.filter(({ dish }) => filters.matches(dish)));
+const { state, spin, reroll, reset } = useDishRandomizer(dishes);
 
 const isOpen = ref(false);
 /** True once the dishes and their images have been loaded for the first time. */
 const prepared = ref(false);
-const hasDishes = computed(() => catalog.availableDishes.value.length > 0);
+const hasDishes = computed(() => dishes.value.length > 0);
 
 // Both calls are no-ops when their work is already done, so reopening the
 // dialog goes straight to the ready view.
@@ -55,7 +59,8 @@ const { timeslots, loading: timeslotsLoading } = useDishTimeslots(() =>
 
       <div v-else-if="!hasDishes" class="error-overlay">
         <div class="error-emoji" aria-hidden="true">😕</div>
-        <p>Oops! No dishes are available right now. Please try again later.</p>
+        <p v-if="filters.isActive.value">No available dishes match your filters.</p>
+        <p v-else>Oops! No dishes are available right now. Please try again later.</p>
         <button class="close-btn" @click="isOpen = false">Close</button>
       </div>
 
@@ -198,7 +203,6 @@ const { timeslots, loading: timeslotsLoading } = useDishTimeslots(() =>
   cursor: pointer;
   font-size: 1em;
   transition: background-color 0.3s ease;
-  margin-bottom: 1em;
 }
 
 .random-dish-btn:hover {

@@ -48,6 +48,12 @@ defineProps<{ vendor: Vendor }>();
 }
 
 
+@media (max-width: 600px) {
+    .vendor {
+        padding: .75em;
+    }
+}
+
 @keyframes fadeIn { 
     from { opacity: 0; } 
     to { opacity: 1; } 

@@ -17,6 +17,8 @@ const FIRST_SPIN_MS = 3000;
 const REROLL_SPIN_MS = 1000;
 const ALL_SEEN_MESSAGE_MS = 2000;
 
+const keyOf = ({ vendor, dish }: VendorDish) => `${vendor.routeName}/${dish.id}`;
+
 /**
  * The "surprise me" state machine: spin through `dishes` and land on one,
  * without repeating a dish until all of them have come up.
@@ -49,6 +51,10 @@ export function useDishRandomizer(dishes: MaybeRefOrGetter<VendorDish[]>) {
   function spin(durationMs = FIRST_SPIN_MS) {
     stop();
     const all = toValue(dishes);
+    // The dishes on offer can change between spins (the user's filters), so
+    // drop the ones that are no longer among them.
+    const offered = new Set(all.map(keyOf));
+    bag = bag.filter((entry) => offered.has(keyOf(entry)));
     if (bag.length === 0) bag = shuffle(all);
     // Only peek for now: the dish leaves the bag when the spin lands on it,
     // so a spin cancelled by reset() does not use it up.

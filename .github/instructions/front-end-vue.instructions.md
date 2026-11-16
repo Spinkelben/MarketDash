@@ -13,14 +13,14 @@ The code under `src/` is layered, and dependencies point one way:
 
 - `types.ts`: Domain types (`Vendor`, `Dish`, `VendorDish`, `Timeslot`, `TimeslotDay`). No optional or dual-cased fields.
 - `api/`: One module per endpoint. Fetches and maps the API's shape to the domain types. This is the only place that knows the backend's field names. No Vue imports.
-- `stores/`: Shared app state as plain composables with module-level state (`useCatalog`, `useTimeslots`). Each fetches its data once. Only the store file mutates its state; components read it and call its functions.
+- `stores/`: Shared app state as plain composables with module-level state (`useCatalog`, `useTimeslots`, `useFilters`). The first two each fetch their data once. Only the store file mutates its state; components read it and call its functions.
 - `composables/`: Component-level logic (`useDishRandomizer`, `useDishTimeslots`). May use stores.
-- `lib/`: Pure helper functions with no Vue imports (`random.ts`, `images.ts`).
+- `lib/`: Pure helper functions with no Vue imports (`random.ts`, `images.ts`, `dietary.ts`). The API has no diet or allergen fields; `dietary.ts` parses them from the dishes' free-text descriptions.
 - `components/`: Single File Components. Feature-specific groups get a subfolder (`components/randomizer/`).
 
 ### Rules
 - Components never call `fetch` or import from `api/`; they go through a store.
-- Only container components use stores: `App`, `VendorList`, `Menu`, `MenuItem`, `DaySelector`, `DishRandomizer`.
+- Only container components use stores: `App`, `VendorList`, `Menu`, `MenuItem`, `DaySelector`, `DishFilter`, `DishRandomizer`.
 - Presentational components take props and emit events only (`TimeSlotList`, `DishDetailsDialog`, `CoverImage`, the `DishRandomizer*` views).
 - A component does one job. Do not add props that switch it between two modes (e.g. "pass an item to fetch, or pass the data directly").
 - Keep logic in plain functions in `lib/` where possible; composables add reactivity on top.

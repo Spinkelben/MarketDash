@@ -92,6 +92,18 @@ const timeFormatter = new Intl.DateTimeFormat('da-dk', { hour: 'numeric', minute
   font-weight: bold;
 }
 
+/* On a phone the list uses the full width, with slots small enough for four on a row. */
+@media (max-width: 600px) {
+  .timespans {
+    margin: 0.4em 0 1em;
+    gap: 0.35em;
+  }
+
+  .timeslot {
+    font-size: 0.95em;
+  }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

@@ -1,3 +1,4 @@
+import { parseAllergens, parseDiets } from '../lib/dietary';
 import type { Dish } from '../types';
 
 /** A menu item as the API returns it. Only the fields we use are listed. */
@@ -17,7 +18,10 @@ interface CategoryDto {
 
 function toDish(dto: ProductDto, vendorRoute: string): Dish {
   const description = dto.Description ?? '';
+  // The API has no diet or allergen fields; both are read from the free text.
   return {
+    diets: parseDiets(dto.Name, description),
+    allergens: parseAllergens(dto.DescriptionLong ?? ''),
     id: dto.key ?? dto.Name,
     vendorRoute,
     name: dto.Name,

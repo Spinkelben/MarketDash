@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useCatalog } from '../stores/catalog';
+import { useFilters } from '../stores/filters';
 import MenuItem from './MenuItem.vue';
 
 const props = defineProps<{
@@ -11,6 +12,10 @@ const props = defineProps<{
 
 const { menus } = useCatalog();
 const menu = computed(() => menus[props.vendorRoute]);
+
+const { matches } = useFilters();
+/** The dishes that pass the user's filters. */
+const shownDishes = computed(() => (menu.value?.dishes ?? []).filter(matches));
 </script>
 
 <template>
@@ -20,9 +25,10 @@ const menu = computed(() => menus[props.vendorRoute]);
       Unable to load menu: {{ menu.error }}
     </p>
     <p v-else-if="menu.dishes.length === 0">No menu items available.</p>
+    <p v-else-if="shownDishes.length === 0" class="menu-filtered">No dishes match your filters.</p>
     <dl v-else class="menu-item-list">
       <MenuItem
-        v-for="dish in menu.dishes"
+        v-for="dish in shownDishes"
         :key="dish.id"
         :item="dish"
         :timeslots="timeslots"
@@ -36,6 +42,12 @@ const menu = computed(() => menus[props.vendorRoute]);
     display: flex;
     flex-direction: column;
     margin: 0;
+}
+
+.menu-filtered {
+    margin: 0;
+    opacity: 0.6;
+    font-size: 0.9em;
 }
 
 .menu-error {
