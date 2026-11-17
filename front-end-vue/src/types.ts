@@ -10,7 +10,6 @@ export interface Vendor {
   routeName: string;
   name: string;
   imageUrl: string;
-  visible: boolean;
   /** Whether pickup timeslots can be requested for this vendor. */
   timeslots: boolean;
 }

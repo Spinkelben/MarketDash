@@ -18,14 +18,14 @@ function toVendor(dto: VendorDto): Vendor {
     routeName: dto.routeName,
     name: dto.name,
     imageUrl: dto.imageUrl ?? '',
-    visible: dto.visible ?? false,
     timeslots: dto.timeslots ?? false,
   };
 }
 
 /**
  * Fetches the vendor list, flattened: a location with children yields itself
- * followed by its children.
+ * followed by its children. Hidden vendors are dropped. A hidden but enabled
+ * location still contributes its visible children.
  */
 export async function fetchVendors(): Promise<Vendor[]> {
   const response = await fetch('/api/vendors');
@@ -38,6 +38,6 @@ export async function fetchVendors(): Promise<Vendor[]> {
   return topLevel
     .filter((dto) => dto.visible || dto.enabled)
     .flatMap((dto) => [dto, ...Object.values(dto.children ?? {})])
-    .filter((dto) => !skippedVendors.includes(dto.routeName))
+    .filter((dto) => dto.visible && !skippedVendors.includes(dto.routeName))
     .map(toVendor);
 }
