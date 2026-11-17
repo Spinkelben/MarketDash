@@ -26,10 +26,9 @@ const vendors = shallowRef<Vendor[]>([]);
 /** Menu per vendor, keyed by the vendor's route name. */
 const menus = reactive<Record<string, MenuState>>({});
 
-/** Every dish that can be ordered: the enabled dishes of the visible vendors. */
+/** Every dish that can be ordered: the enabled dishes of the (visible) vendors. */
 const availableDishes = computed<VendorDish[]>(() =>
   vendors.value
-    .filter((vendor) => vendor.visible)
     .flatMap((vendor) =>
       (menus[vendor.routeName]?.dishes ?? [])
         .filter((dish) => dish.enabled)
