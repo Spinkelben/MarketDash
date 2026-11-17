@@ -1,6 +1,7 @@
 import { computed, reactive, ref, shallowRef } from 'vue';
 import { fetchMenu } from '../api/menus';
 import { fetchVendors } from '../api/vendors';
+import { rotateByDay } from '../lib/random';
 import type { Dish, Vendor, VendorDish } from '../types';
 
 /**
@@ -54,7 +55,8 @@ async function loadAll() {
   status.value = 'loading';
   error.value = null;
   try {
-    vendors.value = await fetchVendors();
+    // Rotate daily so no vendor is always first in the list.
+    vendors.value = rotateByDay(await fetchVendors());
     // The vendor list can render now; each menu fills in as it arrives.
     status.value = 'ready';
   } catch (e) {
